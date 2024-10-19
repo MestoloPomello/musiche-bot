@@ -6,22 +6,20 @@ const commandsData = Object.values(commands).map((command) => command.data);
 
 const rest = new REST({ version: "10" }).setToken(config.DISCORD_TOKEN);
 
-type DeployCommandsProps = {
-	guildId: string;
-};
-
-export async function deployCommands({ guildId }: DeployCommandsProps) {
+export async function deployCommands(guildIds: string[]) {
 	try {
-		console.log("Started refreshing application (/) commands.");
+		console.log("Started refreshing (/) commands.");
 
-		await rest.put(
-			Routes.applicationGuildCommands(config.DISCORD_CLIENT_ID, guildId),
-			{
-				body: commandsData,
-			}
-		);
+		for (const guildId of guildIds) {
+			rest.put(
+				Routes.applicationGuildCommands(config.DISCORD_CLIENT_ID, guildId),
+				{
+					body: commandsData,
+				}
+			);
+		}
 
-		console.log("Successfully reloaded application (/) commands.");
+		console.log("Successfully reloaded (/) commands.");
 	} catch (error) {
 		console.error(error);
 	}

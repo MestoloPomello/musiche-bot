@@ -1,21 +1,31 @@
 require("console-stamp")(console, { format: ":date(HH:MM:ss.l)" });
-import { Client } from "discord.js";
+import { Client, GuildDefaultMessageNotifications } from "discord.js";
 import { config } from "./config";
 import { commands } from "./commands";
 import { deployCommands } from "./deploy-commands";
 import { getVoiceConnection } from "@discordjs/voice";
+import fs, { readFileSync, writeFileSync } from "fs";
+import { GUILDS_LIST_PATH } from "./constants";
 
 const client = new Client({
 	intents: ["Guilds", "GuildMessages", "GuildVoiceStates"],
 });
 
 client.once("ready", async () => {
-	//deployCommands({ guildId: process.env.DEFAULT_GUILD! });
+	// Create the guilds list file is it doesn't exist
+	if (!fs.existsSync(GUILDS_LIST_PATH)) {
+		fs.writeFileSync(GUILDS_LIST_PATH, "[]");
+	}
+	const guildsArray = JSON.parse(readFileSync(GUILDS_LIST_PATH, { encoding: "utf8" }));
+	await deployCommands(guildsArray);
 	console.log("Musiche ready.");
 });
 
 client.on("guildCreate", async (guild) => {
-	await deployCommands({ guildId: guild.id });
+	// Add the server to the list (its ID will be used to refresh commands)
+	const guildsArray = JSON.parse(readFileSync(GUILDS_LIST_PATH, { encoding: "utf8" }));
+	guildsArray.push(guild.id);
+	writeFileSync(GUILDS_LIST_PATH, JSON.stringify(guildsArray), { flag: "w" });
 });
 
 client.on("voiceStateUpdate", async (oldState, newState) => {

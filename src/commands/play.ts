@@ -19,6 +19,7 @@ export async function execute(interaction: CommandInteraction) {
         const currVoiceChannel = (interaction.member! as GuildMember)?.voice?.channel;
         if (!currVoiceChannel) throw "non sei in un canale vocale, cazzo!";
 
+		// @ts-ignore
         const url = interaction.options.getString('url');
         if (!url) throw "Inserisci un URL valido!";
 
