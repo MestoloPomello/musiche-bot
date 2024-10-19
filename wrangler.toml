@@ -1,0 +1,5 @@
+name = "musiche"
+main = "src/index.ts"
+compatibility_date = "2024-10-24"
+workers_dev = true
+node_compat = true
