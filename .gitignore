@@ -143,8 +143,4 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/node
 
-*.mp3
-*.m4a
-
-.replit
-replit.nix
+data/guilds.json

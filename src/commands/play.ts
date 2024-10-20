@@ -1,5 +1,9 @@
 import ytdl = require('@distube/ytdl-core');
-import { joinVoiceChannel, createAudioPlayer, createAudioResource, VoiceConnectionStatus, AudioPlayerStatus } from '@discordjs/voice';
+import {
+	createAudioResource,
+	VoiceConnectionStatus,
+	AudioPlayerStatus
+} from '@discordjs/voice';
 import {
     ActionRowBuilder,
     ButtonBuilder,
@@ -8,6 +12,13 @@ import {
     GuildMember,
     SlashCommandBuilder,
 } from "discord.js";
+import {
+	disconnectTimeouts,
+	getPlayer,
+	getVoiceConnection,
+	openedVoiceConnections
+} from '../connections';
+import { DISCONNECTION_TIMEOUT } from '../constants';
 
 export const data = new SlashCommandBuilder()
     .setName('play')
@@ -15,27 +26,26 @@ export const data = new SlashCommandBuilder()
     .addStringOption(option => option.setName('url').setDescription('URL o nome del video di YouTube').setRequired(true));
 
 export async function execute(interaction: CommandInteraction) {
+	console.log("ricevuto comando play")
     try {
         const currVoiceChannel = (interaction.member! as GuildMember)?.voice?.channel;
         if (!currVoiceChannel) throw "non sei in un canale vocale, cazzo!";
+
+		const guildId = currVoiceChannel.guild.id;
 
 		// @ts-ignore
         const url = interaction.options.getString('url');
         if (!url) throw "Inserisci un URL valido!";
 
-        const voiceConnection = joinVoiceChannel({
-            channelId: currVoiceChannel.id,
-            guildId: currVoiceChannel.guild.id,
-            adapterCreator: currVoiceChannel.guild.voiceAdapterCreator,
-        });
+        const voiceConnection = getVoiceConnection(currVoiceChannel); 
+		if (!voiceConnection) throw "Errore nello stabilire una connessione al canale vocale.";
 
-        const player = createAudioPlayer();
+        const player = getPlayer(guildId); 
+		if (!player) throw "Errore nella creazione di un player audio.";
 
         voiceConnection.on(VoiceConnectionStatus.Ready, async () => {
             const stream = ytdl(url, {
-                filter: 'audioonly',
-                //quality: 'lowestaudio',  // Imposta la qualità più bassa per verificare il funzionamento
-                //dlChunkSize: 0, // Scarica il file a chunk
+                filter: 'audioonly'
             });
 
             const resource = createAudioResource(stream);
@@ -43,20 +53,49 @@ export async function execute(interaction: CommandInteraction) {
             voiceConnection.subscribe(player);
 
             player.on(AudioPlayerStatus.Playing, () => {
-                console.log(`Sto suonando: ${url}`);
+                console.log(`[PLAY] Guild: ${guildId} | URL: ${url}`);
+
+				// Reset the timer if a new song starts
+				if (disconnectTimeouts.has(guildId)) {
+					clearTimeout(disconnectTimeouts.get(guildId));
+					disconnectTimeouts.delete(guildId);
+				}
             });
+
+			player.on(AudioPlayerStatus.Idle, () => {
+				const timeout = setTimeout(() => {
+					voiceConnection?.destroy();
+					openedVoiceConnections.delete(guildId);
+					console.log(`[PLAY] Disconnected after timeout in guild ${guildId}.`);
+				}, DISCONNECTION_TIMEOUT);
+				disconnectTimeouts.set(guildId, timeout);
+			});
 
             player.on('error', error => {
                 console.error(`Errore nel player: ${error.message}`);
             });
         });
 
+		const pauseBtn = new ButtonBuilder()
+			.setCustomId("pauseBtn")
+			.setLabel("\u{23F8}")
+			.setStyle(ButtonStyle.Primary);
+
+		const stopBtn = new ButtonBuilder()
+			.setCustomId("stopBtn")
+			.setLabel("\u{23F9}")
+			.setStyle(ButtonStyle.Primary);
+
         const disconnectBtn = new ButtonBuilder()
-            .setCustomId('disconnectBtn')
-            .setLabel('Disconnetti')
+            .setCustomId("disconnectBtn")
+            .setLabel("Disconnetti")
             .setStyle(ButtonStyle.Danger);
 
-        const replyRow = new ActionRowBuilder<ButtonBuilder>().addComponents(disconnectBtn);
+        const replyRow = new ActionRowBuilder<ButtonBuilder>().addComponents([
+			pauseBtn,
+			stopBtn,
+			disconnectBtn
+		]);
 
         await interaction.reply({
             content: `Sto riproducendo il brano: ${url}`,

@@ -1,30 +1,30 @@
 import {
-  CommandInteraction,
-  SlashCommandBuilder
+	CommandInteraction,
+	SlashCommandBuilder
 } from "discord.js";
 
 import { getVoiceConnection } from "@discordjs/voice";
 
 export const data = new SlashCommandBuilder()
-  .setName("leave")
-  .setDescription("Lascia il canale attuale.");
+.setName("leave")
+.setDescription("Lascia il canale attuale.");
 
 export async function execute(interaction: CommandInteraction) {
-  try {
-    if (!interaction.guildId) throw "questo comando non funziona in privato.";
+	try {
+		if (!interaction.guildId) throw "questo comando non funziona in privato.";
 
-    const voiceConnection = getVoiceConnection(interaction.guildId);
+		const voiceConnection = getVoiceConnection(interaction.guildId);
 
-    if (!voiceConnection) throw "non sono in un canale vocale.";
-    voiceConnection.destroy();
+		if (!voiceConnection) throw "non sono in un canale vocale.";
+		voiceConnection.destroy();
 
-    interaction.reply({
-      content: `Ho abbandonato il canale vocale.`
-    });
-  } catch (error) {
-    console.error("[CMD] Leave error:", error);
-    await interaction.reply({
-      content: `Errore: ${error}`
-    });
-  }
+		interaction.reply({
+			content: `Ho abbandonato il canale vocale.`
+		});
+	} catch (error) {
+		console.error("[CMD] Leave error:", error);
+		await interaction.reply({
+			content: `Errore: ${error}`
+		});
+	}
 }
