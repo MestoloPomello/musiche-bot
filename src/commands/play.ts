@@ -13,23 +13,23 @@ import {
     SlashCommandBuilder,
 } from "discord.js";
 import {
+    destroyPlayer,
 	disconnectTimeouts,
-	getPlayer,
+	getNewPlayer,
 	getVoiceConnection,
 	openedVoiceConnections
 } from '../connections';
-import { DISCONNECTION_TIMEOUT } from '../constants';
+import { DISCONNECTION_TIMEOUT, ICONS } from '../constants';
 
 export const data = new SlashCommandBuilder()
     .setName('play')
     .setDescription('Avvia le musiche nel canale dove ti trovi.')
-    .addStringOption(option => option.setName('url').setDescription('URL o nome del video di YouTube').setRequired(true));
+    .addStringOption(option => option.setName('url').setDescription('URL del video di YouTube').setRequired(true));
 
 export async function execute(interaction: CommandInteraction) {
-	console.log("ricevuto comando play")
     try {
         const currVoiceChannel = (interaction.member! as GuildMember)?.voice?.channel;
-        if (!currVoiceChannel) throw "non sei in un canale vocale, cazzo!";
+        if (!currVoiceChannel) throw "Non sei in un canale vocale, cazzo!";
 
 		const guildId = currVoiceChannel.guild.id;
 
@@ -37,15 +37,18 @@ export async function execute(interaction: CommandInteraction) {
         const url = interaction.options.getString('url');
         if (!url) throw "Inserisci un URL valido!";
 
+		// ToDo - fix music replacement
+	
         const voiceConnection = getVoiceConnection(currVoiceChannel); 
 		if (!voiceConnection) throw "Errore nello stabilire una connessione al canale vocale.";
+		voiceConnection.removeAllListeners();
 
-        const player = getPlayer(guildId); 
+        const player = getNewPlayer(guildId); 
 		if (!player) throw "Errore nella creazione di un player audio.";
 
         voiceConnection.on(VoiceConnectionStatus.Ready, async () => {
             const stream = ytdl(url, {
-                filter: 'audioonly'
+                filter: "audioonly"
             });
 
             const resource = createAudioResource(stream);
@@ -72,19 +75,19 @@ export async function execute(interaction: CommandInteraction) {
 			});
 
             player.on('error', error => {
-                console.error(`Errore nel player: ${error.message}`);
+                console.trace(`Errore nel player: ${error.message}`);
             });
         });
 
 		const pauseBtn = new ButtonBuilder()
 			.setCustomId("pauseBtn")
-			.setLabel("\u{23F8}")
+			.setLabel(ICONS.pause)
 			.setStyle(ButtonStyle.Primary);
 
-		const stopBtn = new ButtonBuilder()
-			.setCustomId("stopBtn")
-			.setLabel("\u{23F9}")
-			.setStyle(ButtonStyle.Primary);
+		//const stopBtn = new ButtonBuilder()
+		//	.setCustomId("stopBtn")
+		//	.setLabel(ICONS.stop)
+		//	.setStyle(ButtonStyle.Primary);
 
         const disconnectBtn = new ButtonBuilder()
             .setCustomId("disconnectBtn")
@@ -93,7 +96,7 @@ export async function execute(interaction: CommandInteraction) {
 
         const replyRow = new ActionRowBuilder<ButtonBuilder>().addComponents([
 			pauseBtn,
-			stopBtn,
+			//stopBtn, // ToDo - temporarily hidden
 			disconnectBtn
 		]);
 

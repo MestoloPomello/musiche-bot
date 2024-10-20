@@ -38,6 +38,7 @@ export function destroyVoiceConnection(
 	guildId: string
 ): void {
 	try {
+		destroyPlayer(guildId);
 		openedVoiceConnections.get(guildId)?.destroy();		
 		openedVoiceConnections.delete(guildId);
 		console.log(`[CONN] Connection closed for guild ${guildId}. Total connections: ${openedVoiceConnections.size}`);
@@ -46,16 +47,19 @@ export function destroyVoiceConnection(
 	}
 }
 
-export function getPlayer(
+export function getNewPlayer(
 	guildId: string
 ): AudioPlayer | null {
 	try {
-		let player = playersMap.get(guildId);
-		if (!player) {
-			player = createAudioPlayer();
-			playersMap.set(guildId, player);
+		let oldPlayer = playersMap.get(guildId);
+		if (oldPlayer) {
+			oldPlayer.stop();
+			oldPlayer.removeAllListeners();
+			playersMap.delete(guildId);
 		}
-		return player;
+		const newPlayer = createAudioPlayer();
+		playersMap.set(guildId, newPlayer);
+		return newPlayer;
 	} catch (error: any) {
 		console.trace("getPlayer error:", error);
 		return null;
@@ -81,5 +85,20 @@ export function handlePlayerPause(
 	} catch (error: any) {
 		console.trace("handlePlayerPause error:", error);
 		return true;
+	}
+}
+
+
+export function destroyPlayer(
+	guildId: string
+): void {
+	try {
+		const player = playersMap.get(guildId);
+		if (!player) return;
+		player.stop(true);
+		player.removeAllListeners();
+		playersMap.delete(guildId);
+	} catch (error: any) {
+		console.trace("destroyPlayer error:", error);
 	}
 }

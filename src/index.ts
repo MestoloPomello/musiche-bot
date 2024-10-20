@@ -1,12 +1,13 @@
 require("console-stamp")(console, { format: ":date(HH:MM:ss.l)" });
-import { Client } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, Client } from "discord.js";
 import { config } from "./config";
 import { commands } from "./commands";
 import { deployCommands } from "./deploy-commands";
 import { VoiceConnection } from "@discordjs/voice";
 import { existsSync, readFileSync, writeFileSync } from "fs";
-import { GUILDS_LIST_PATH } from "./constants";
+import { GUILDS_LIST_PATH, ICONS } from "./constants";
 import {
+    destroyPlayer,
 	destroyVoiceConnection,
 	handlePlayerPause,
 	openedVoiceConnections
@@ -62,18 +63,32 @@ client.on("interactionCreate", async (interaction) => {
 			switch (interaction.customId) {
 				case "pauseBtn":
 					const isPaused = handlePlayerPause(guildId);
+					const row = interaction.message.components[0] as unknown as ActionRowBuilder<ButtonBuilder>;
+					const buttons = row.components as ButtonBuilder[];
+					// @ts-ignore
+					const pauseBtn = buttons.find(b => b.data.custom_id === "pauseBtn");
 					if (isPaused) {
-						interaction.reply("Ho messo in pausa la musica.");
+						// @ts-ignore
+						pauseBtn.data.label = ICONS.play;
 					} else {
-						interaction.reply("Ho ripreso a rompere i coglioni.");
+						// @ts-ignore
+						pauseBtn.data.label = ICONS.pause;
 					}
+
+					// Update the whole action row 
+					interaction.update({
+						components: [new ActionRowBuilder<ButtonBuilder>().addComponents(buttons)]
+					});
 					break;
-				case "stopBtn":
-					// ToDo
-					break;
+				//case "stopBtn":
+				//	destroyPlayer(guildId);
+				//	interaction.deferUpdate();
+				//	break;
 				case "disconnectBtn":
 					destroyVoiceConnection(guildId);
-					interaction.reply("Disconnesso dal canale.");
+					interaction.update({
+						components: []
+					});
 					break;
 			}
 		}
