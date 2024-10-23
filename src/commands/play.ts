@@ -2,7 +2,9 @@ import ytdl = require('@distube/ytdl-core');
 import {
 	createAudioResource,
 	VoiceConnectionStatus,
-	AudioPlayerStatus
+	AudioPlayerStatus,
+    AudioPlayer,
+    VoiceConnection
 } from '@discordjs/voice';
 import {
     ActionRowBuilder,
@@ -39,6 +41,7 @@ export async function execute(interaction: CommandInteraction) {
 
 		// ToDo - fix music replacement
 	
+		const isVCexisting = openedVoiceConnections.has(guildId); 
         const voiceConnection = getVoiceConnection(currVoiceChannel); 
 		if (!voiceConnection) throw "Errore nello stabilire una connessione al canale vocale.";
 		voiceConnection.removeAllListeners();
@@ -46,38 +49,23 @@ export async function execute(interaction: CommandInteraction) {
         const player = getNewPlayer(guildId); 
 		if (!player) throw "Errore nella creazione di un player audio.";
 
-        voiceConnection.on(VoiceConnectionStatus.Ready, async () => {
-            const stream = ytdl(url, {
-                filter: "audioonly"
-            });
-
-            const resource = createAudioResource(stream);
-            player.play(resource);
-            voiceConnection.subscribe(player);
-
-            player.on(AudioPlayerStatus.Playing, () => {
-                console.log(`[PLAY] Guild: ${guildId} | URL: ${url}`);
-
-				// Reset the timer if a new song starts
-				if (disconnectTimeouts.has(guildId)) {
-					clearTimeout(disconnectTimeouts.get(guildId));
-					disconnectTimeouts.delete(guildId);
-				}
-            });
-
-			player.on(AudioPlayerStatus.Idle, () => {
-				const timeout = setTimeout(() => {
-					voiceConnection?.destroy();
-					openedVoiceConnections.delete(guildId);
-					console.log(`[PLAY] Disconnected after timeout in guild ${guildId}.`);
-				}, DISCONNECTION_TIMEOUT);
-				disconnectTimeouts.set(guildId, timeout);
+		if (isVCexisting) {
+			startPlayingMusic(
+				voiceConnection,
+				url,
+				player,
+				guildId
+			);
+		} else {
+			voiceConnection.on(VoiceConnectionStatus.Ready, async () => {
+				startPlayingMusic(
+					voiceConnection,
+					url,
+					player,
+					guildId
+				);
 			});
-
-            player.on('error', error => {
-                console.trace(`Errore nel player: ${error.message}`);
-            });
-        });
+		}	
 
 		const pauseBtn = new ButtonBuilder()
 			.setCustomId("pauseBtn")
@@ -112,3 +100,41 @@ export async function execute(interaction: CommandInteraction) {
     }
 }
 
+
+function startPlayingMusic(
+	voiceConnection: VoiceConnection, 
+	url: string,
+	player: AudioPlayer,
+	guildId: string
+) {
+	const stream = ytdl(url, {
+		filter: "audioonly"
+	});
+
+	const resource = createAudioResource(stream);
+	player.play(resource);
+	voiceConnection.subscribe(player);
+
+	player.on(AudioPlayerStatus.Playing, () => {
+		console.log(`[PLAY] Guild: ${guildId} | URL: ${url}`);
+
+		// Reset the timer if a new song starts
+		if (disconnectTimeouts.has(guildId)) {
+			clearTimeout(disconnectTimeouts.get(guildId));
+			disconnectTimeouts.delete(guildId);
+		}
+	});
+
+	player.on(AudioPlayerStatus.Idle, () => {
+		const timeout = setTimeout(() => {
+			voiceConnection?.destroy();
+			openedVoiceConnections.delete(guildId);
+			console.log(`[PLAY] Disconnected after timeout in guild ${guildId}.`);
+		}, DISCONNECTION_TIMEOUT);
+		disconnectTimeouts.set(guildId, timeout);
+	});
+
+	player.on('error', error => {
+		console.trace(`Errore nel player: ${error.message}`);
+	});
+}
