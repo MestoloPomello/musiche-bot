@@ -5,10 +5,12 @@ import {
 } from "discord.js";
 import {
     addToQueue,
-    playersMap,
+    getGuildInstance,
+    guildInstances,
     SongInfo
 } from '../connections';
 import { startNextQueuedSong } from "../music-player";
+import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
 
 export const data = new SlashCommandBuilder()
     .setName('play')
@@ -27,9 +29,10 @@ export async function execute(interaction: CommandInteraction) {
 		}
 
 		const song: SongInfo = await addToQueue(guildId, url, false);
+		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId); 
 
 		// If the music wasn't running
-		if (!playersMap.has(guildId)) {
+		if (!guildInstance?.player) {
 			startNextQueuedSong(interaction);
 		} else {
 			await interaction.reply({

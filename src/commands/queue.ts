@@ -4,7 +4,8 @@ import {
 	SlashCommandBuilder
 } from "discord.js";
 import { getVoiceConnection } from "@discordjs/voice";
-import { queues } from "../connections";
+import { getGuildInstance } from "../connections";
+import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
 
 export const data = new SlashCommandBuilder()
 	.setName("queue")
@@ -20,7 +21,8 @@ export async function execute(interaction: CommandInteraction) {
 		const voiceConnection = getVoiceConnection(guildId);
 		if (!voiceConnection) throw "non sono in un canale vocale.";
 
-		const queue = queues.get(guildId) ?? [];
+		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId);
+		const { queue } = guildInstance; 
 		let queueStr = "";
 
 		if (queue.length == 0) {

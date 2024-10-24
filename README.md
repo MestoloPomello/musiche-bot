@@ -1,4 +1,4 @@
-# Musiche 
+# MusicheBot 
 ![discordjs](https://img.shields.io/badge/discordjs-v14-blue)
 
 ### Environment variables

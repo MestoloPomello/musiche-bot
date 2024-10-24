@@ -1,13 +1,12 @@
 import {
-    AudioPlayer,
 	AudioPlayerStatus,
-	createAudioPlayer,
 	joinVoiceChannel,
 	VoiceConnection
 } from "@discordjs/voice";
 import ytdl from "@distube/ytdl-core";
 import { VoiceBasedChannel } from "discord.js";
 import { formatDuration } from "./utils";
+import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
 
 
 export type SongInfo = {
@@ -17,19 +16,47 @@ export type SongInfo = {
 }
 
 
-export const openedVoiceConnections = new Map<string, VoiceConnection>(); 
-export const disconnectTimeouts = new Map<string, NodeJS.Timeout>(); // Handle silence timeouts 
-export const playersMap = new Map<string, AudioPlayer>();
-export const queues = new Map<string, SongInfo[]>(); // { guildId, [ {song1}, {song2} ]}
+export const guildInstances = new Map<string, ActiveGuildInstance>();
+
+/**
+ *	Get a guild instance by its ID. If it doesn't exist, the function creates it.
+ */
+export function getGuildInstance(guildId: string): ActiveGuildInstance {
+	let guildInstance = guildInstances.get(guildId);
+	if (!guildInstance) {
+		guildInstance = new ActiveGuildInstance();	
+		guildInstances.set(guildId, guildInstance);
+		console.log(`[CONN] New instance created for guild ${guildId}. Total instances: ${guildInstances.size}`);
+	}
+	return guildInstance;
+}
 
 
+export function destroyGuildInstance(
+	guildId: string
+): void {
+	try {
+		let guildInstance = guildInstances.get(guildId);
+		guildInstance?.destroyVoiceConnection();
+		guildInstances.delete(guildId);
+		console.log(`[CONN] Instace deleted for guild ${guildId}. Total instances: ${guildInstances.size}`);
+	} catch (error: any) {
+		console.trace("destroyVoiceConnection error", error);
+	}
+}
+
+
+/**
+ *	Adds a new song to a guild's queue.
+ */
 export async function addToQueue(
 	guildId: string,
 	url: string,
 	asFirst: boolean = false
 ): Promise<SongInfo> {
 	const fullSongInfo = await ytdl.getBasicInfo(url); 
-	const queue = queues.get(guildId) ?? [];
+	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId); 
+	const { queue } = guildInstance;
 
 	const newSong: SongInfo = {
 		title: fullSongInfo.videoDetails.title,
@@ -43,13 +70,7 @@ export async function addToQueue(
 		queue.push(newSong);
 	}
 
-	queues.set(guildId, queue);
 	return newSong;
-}
-
-
-export function getNextSongInQueue(guildId: string): SongInfo | null {
-	return queues.get(guildId)?.shift() ?? null;	
 }
 
 
@@ -57,7 +78,8 @@ export function getVoiceConnection(
 	currVoiceChannel: VoiceBasedChannel
 ): VoiceConnection | null {
 	try {
-		let voiceConnection = openedVoiceConnections.get(currVoiceChannel.guild.id);
+		const guildInstance: ActiveGuildInstance = getGuildInstance(currVoiceChannel.guild.id);
+		let voiceConnection = guildInstance?.voiceConnection; 
 		if (!voiceConnection) {
 			voiceConnection = joinVoiceChannel({
 				channelId: currVoiceChannel.id,
@@ -66,8 +88,6 @@ export function getVoiceConnection(
 				adapterCreator: currVoiceChannel.guild.voiceAdapterCreator,
 			});
 			if (!voiceConnection) return null;
-			openedVoiceConnections.set(currVoiceChannel.guild.id, voiceConnection);
-			console.log(`[CONN] New connection opened for guild ${currVoiceChannel.guild.id}. Total connections: ${openedVoiceConnections.size}`);
 		} 
 		return voiceConnection;
 	} catch (error: any) {
@@ -77,40 +97,6 @@ export function getVoiceConnection(
 }
 
 
-export function destroyVoiceConnection(
-	guildId: string
-): void {
-	try {
-		destroyPlayer(guildId);
-		openedVoiceConnections.get(guildId)?.destroy();		
-		openedVoiceConnections.delete(guildId);
-		console.log(`[CONN] Connection closed for guild ${guildId}. Total connections: ${openedVoiceConnections.size}`);
-	} catch (error: any) {
-		console.trace("destroyVoiceConnection error", error);
-	}
-}
-
-
-export function getNewPlayer(
-	guildId: string
-): AudioPlayer | null {
-	try {
-		let oldPlayer = playersMap.get(guildId);
-		if (oldPlayer) {
-			oldPlayer.stop();
-			oldPlayer.removeAllListeners();
-			playersMap.delete(guildId);
-		}
-		const newPlayer = createAudioPlayer();
-		playersMap.set(guildId, newPlayer);
-		return newPlayer;
-	} catch (error: any) {
-		console.trace("getPlayer error:", error);
-		return null;
-	}
-} 
-
-
 /** 
  *	Returns true if the player is paused (or not running in general), false otherwise.
  */
@@ -118,7 +104,8 @@ export function handlePlayerPause(
 	guildId: string
 ): boolean {
 	try {
-		const player = playersMap.get(guildId);
+		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId); 
+		const player = guildInstance?.player; 
 		if (!player) return true;
 		if (player.state.status === AudioPlayerStatus.Paused) {
 			player.unpause();
@@ -133,17 +120,3 @@ export function handlePlayerPause(
 	}
 }
 
-
-export function destroyPlayer(
-	guildId: string
-): void {
-	try {
-		const player = playersMap.get(guildId);
-		if (!player) return;
-		player.stop(true);
-		player.removeAllListeners();
-		playersMap.delete(guildId);
-	} catch (error: any) {
-		console.trace("destroyPlayer error:", error);
-	}
-}
