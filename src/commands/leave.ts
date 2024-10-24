@@ -14,7 +14,6 @@ export async function execute(interaction: CommandInteraction) {
 		if (!interaction.guildId) throw "questo comando non funziona in privato.";
 
 		const voiceConnection = getVoiceConnection(interaction.guildId);
-
 		if (!voiceConnection) throw "non sono in un canale vocale.";
 		voiceConnection.destroy();
 

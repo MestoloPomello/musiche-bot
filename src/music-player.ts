@@ -8,9 +8,11 @@ import {
 import {
 	disconnectTimeouts,
 	getNewPlayer,
+	getNextSongInQueue,
 	getVoiceConnection,
 	openedVoiceConnections,
-	queues
+	queues,
+    SongInfo
 } from "./connections";
 import {
 	AudioPlayer,
@@ -22,6 +24,7 @@ import {
 import ytdl from "@distube/ytdl-core";
 import { DISCONNECTION_TIMEOUT, ICONS } from "./constants";
 
+
 export async function startNextQueuedSong(
 	interaction: CommandInteraction,
 ) {
@@ -29,12 +32,8 @@ export async function startNextQueuedSong(
 	if (!currVoiceChannel) throw "Non sei in un canale vocale, cazzo!";
 
 	const guildId: string = currVoiceChannel.guild.id;
-	const queue: string[] = queues.get(guildId) ?? [];	
-	if (queue.length == 0) {
-		return;
-	}
-	const url: string = queue.shift()!;
-	queues.set(guildId, queue);
+	const nextSong: SongInfo | null = getNextSongInQueue(guildId);
+	if (!nextSong) return;
 
 	const isVCexisting: boolean = openedVoiceConnections.has(guildId); 
 	const voiceConnection: VoiceConnection | null = getVoiceConnection(currVoiceChannel); 
@@ -48,7 +47,7 @@ export async function startNextQueuedSong(
 		startPlayingMusic(
 			interaction,
 			voiceConnection,
-			url,
+			nextSong,
 			player,
 			guildId
 		);
@@ -57,7 +56,7 @@ export async function startNextQueuedSong(
 			startPlayingMusic(
 				interaction,
 				voiceConnection,
-				url,
+				nextSong,
 				player,
 				guildId
 			);
@@ -86,7 +85,7 @@ export async function startNextQueuedSong(
 	]);
 
 	const interactionResponse = {
-		content: `Sto riproducendo il brano: ${url}`,
+		content: `Sto riproducendo il brano: ${nextSong.title} [${nextSong.length}] - ${nextSong.url}`,
 		components: [replyRow],
 	};
 
@@ -101,11 +100,11 @@ export async function startNextQueuedSong(
 export function startPlayingMusic(
 	interaction: CommandInteraction,
 	voiceConnection: VoiceConnection, 
-	url: string,
+	song: SongInfo,
 	player: AudioPlayer,
 	guildId: string
 ) {
-	const stream = ytdl(url, {
+	const stream = ytdl(song.url, {
 		filter: "audioonly"
 	});
 
@@ -114,7 +113,7 @@ export function startPlayingMusic(
 	voiceConnection.subscribe(player);
 
 	player.on(AudioPlayerStatus.Playing, () => {
-		console.log(`[PLAY] Guild: ${guildId} | URL: ${url}`);
+		console.log(`[PLAY] Guild: ${guildId} | Song: ${song.title}`);
 
 		// Reset the timer if a new song starts
 		if (disconnectTimeouts.has(guildId)) {
@@ -141,6 +140,15 @@ export function startPlayingMusic(
 	});
 
 	player.on('error', error => {
-		console.trace(`Errore nel player: ${error.message}`);
+	 	console.trace(`Errore nel player: ${error.message}`);
+
+		try {
+            const newStream = await ytdl(`${url}&t=${elapsedTime}s`, { filter: 'audioonly' });
+            const newResource = createAudioResource(newStream);
+            player.play(newResource);
+            console.log(`Ripresa la riproduzione da ${elapsedTime} secondi: ${url}`);
+        } catch (retryError) {
+            console.error(`Errore nel tentativo di ripresa dello stream: ${retryError.message}`);
+        }
 	});
 }

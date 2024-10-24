@@ -7,4 +7,4 @@
 
 
 # ToDo
-- cmd skip
+- cacca pantalone

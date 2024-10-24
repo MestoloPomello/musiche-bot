@@ -4,8 +4,9 @@ import {
     SlashCommandBuilder,
 } from "discord.js";
 import {
+    addToQueue,
     playersMap,
-    queues
+    SongInfo
 } from '../connections';
 import { startNextQueuedSong } from "../music-player";
 
@@ -25,16 +26,14 @@ export async function execute(interaction: CommandInteraction) {
 			throw "questo comando non funziona in privato.";
 		}
 
-		const queue: string[] = queues.get(guildId) ?? [];
-		queue.push(url);
-		queues.set(guildId, queue);
+		const song: SongInfo = await addToQueue(guildId, url, false);
 
-		// If the queue was empty
+		// If the music wasn't running
 		if (!playersMap.has(guildId)) {
 			startNextQueuedSong(interaction);
 		} else {
 			await interaction.reply({
-				content: `Aggiunto alla coda: ${url}`
+				content: `Aggiunto alla coda: ${song.title} [${song.length}] - ${url}`
 			});
 		}
     } catch (error) {
