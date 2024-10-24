@@ -7,7 +7,6 @@ import { VoiceConnection } from "@discordjs/voice";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { GUILDS_LIST_PATH, ICONS } from "./constants";
 import {
-    destroyPlayer,
 	destroyVoiceConnection,
 	handlePlayerPause,
 	openedVoiceConnections

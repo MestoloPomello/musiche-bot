@@ -1,5 +1,5 @@
 {
-  "name": "musiche",
+  "name": "musiche-bot",
   "version": "1.0.0",
   "description": "TypeScript Discord bot that provides music.",
   "main": "index.ts",

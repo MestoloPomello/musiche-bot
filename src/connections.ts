@@ -10,6 +10,7 @@ import { VoiceBasedChannel } from "discord.js";
 export const openedVoiceConnections = new Map<string, VoiceConnection>(); 
 export const disconnectTimeouts = new Map<string, NodeJS.Timeout>(); // Handle silence timeouts 
 export const playersMap = new Map<string, AudioPlayer>();
+export const queues = new Map<string, string[]>(); // { guildId, [ url1, url2 ]}
 
 export function getVoiceConnection(
 	currVoiceChannel: VoiceBasedChannel
