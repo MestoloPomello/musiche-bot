@@ -117,6 +117,10 @@ export function startPlayingMusic(
 	const resource = createAudioResource(stream);
 	player.play(resource);
 	voiceConnection.subscribe(player);
+	
+	// Variabled used to resume in case of "aborted" player error
+	let playbackStartTime = Date.now();
+	let elapsedTime = 0;
 
 	player.on(AudioPlayerStatus.Playing, () => {
 		console.log(`[PLAY] Guild: ${guildId} | Playing song: ${song.title}`);
@@ -126,6 +130,8 @@ export function startPlayingMusic(
 			clearTimeout(guildInstance.disconnectTimeout);
 			guildInstance.disconnectTimeout = null;
 		}
+
+		playbackStartTime = Date.now();
 	});
 
 	player.on(AudioPlayerStatus.Idle, () => {
@@ -145,16 +151,19 @@ export function startPlayingMusic(
 	});
 
 	player.on('error', error => {
-	 	console.trace(`Errore nel player: ${error.message}`);
+	 	console.error(`[ERROR] Guild: ${guildId} | Player error: ${error.message}`);
 
-		// ToDo - capire cosa cazzo fare qui
-		//try {
-		//          const newStream = await ytdl(`${url}&t=${elapsedTime}s`, { filter: 'audioonly' });
-		//          const newResource = createAudioResource(newStream);
-		//          player.play(newResource);
-		//          console.log(`Ripresa la riproduzione da ${elapsedTime} secondi: ${url}`);
-		//      } catch (retryError) {
-		//          console.error(`Errore nel tentativo di ripresa dello stream: ${retryError.message}`);
-		//      }
+		if (error.message === "aborted") {
+			const currentTime = Date.now();
+			elapsedTime += Math.floor((currentTime - song.lengthSeconds) / 1000);
+		}
+		try {
+			const newStream = ytdl(`${song.url}&t=${elapsedTime}s`, { filter: 'audioonly' });
+			const newResource = createAudioResource(newStream);
+			player.play(newResource);
+			console.log(`[PLAY] Guild: ${guildId} | Resumed from ${elapsedTime} seconds: ${song.url}`);
+		} catch (retryError) {
+			console.error(`[ERROR] Guild: ${guildId} | While trying to resume the stream: ${retryError}`);
+		}
 	});
 }

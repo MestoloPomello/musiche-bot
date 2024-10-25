@@ -5,6 +5,7 @@ import {
 } from "discord.js";
 import { addToQueue } from '../connections';
 import { startNextQueuedSong } from '../music-player';
+import { getUrl } from "../utils";
 
 export const data = new SlashCommandBuilder()
     .setName('playskip')
@@ -22,8 +23,8 @@ export async function execute(interaction: CommandInteraction) {
 			throw "questo comando non funziona in privato.";
 		}
 
-		addToQueue(guildId, url, true);
-		startNextQueuedSong(interaction);
+		await addToQueue(guildId, url, true);
+		await startNextQueuedSong(interaction);
     } catch (error) {
         console.trace("[PLAYSKIP] Error:", error);
         await interaction.reply({

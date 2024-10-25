@@ -13,6 +13,7 @@ export type SongInfo = {
 	title: string
 	url: string
 	length: string
+	lengthSeconds: number
 }
 
 
@@ -67,7 +68,8 @@ export async function addToQueue(
 	const newSong: SongInfo = {
 		title: fullSongInfo.videoDetails.title,
 		url: url,
-		length: formatDuration(+fullSongInfo.videoDetails.lengthSeconds)
+		length: formatDuration(+fullSongInfo.videoDetails.lengthSeconds),
+		lengthSeconds: +fullSongInfo.videoDetails.lengthSeconds
 	};
 
 	if (asFirst) {

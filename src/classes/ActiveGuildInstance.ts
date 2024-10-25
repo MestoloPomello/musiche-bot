@@ -16,8 +16,6 @@ export class ActiveGuildInstance {
 		this.queue = [];
 	}
 
-
-
 	getNextSongInQueue(): SongInfo | null {
 		if (this.queue.length == 0) return null;
 		this.nowPlaying = this.queue[0];
