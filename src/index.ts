@@ -7,10 +7,11 @@ import { VoiceConnection } from "@discordjs/voice";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { GUILDS_LIST_PATH, ICONS } from "./constants";
 import {
-	destroyVoiceConnection,
-	handlePlayerPause,
-	openedVoiceConnections
+	destroyGuildInstance,
+	getGuildInstance,
+	handlePlayerPause
 } from "./connections";
+import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
 
 const client = new Client({
 	intents: ["Guilds", "GuildMessages", "GuildVoiceStates"],
@@ -35,7 +36,8 @@ client.on("guildCreate", async (guild) => {
 
 client.on("voiceStateUpdate", async (oldState, newState) => {
 	const guildId: string = oldState.guild.id;
-	const voiceConnection: VoiceConnection | undefined = openedVoiceConnections.get(guildId); 
+	const guildInstance: ActiveGuildInstance | undefined = getGuildInstance(guildId, false);
+	const voiceConnection: VoiceConnection | null | undefined = guildInstance?.voiceConnection; 
 
 	// If everyone leaves, quit the channel
 	if (
@@ -44,7 +46,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 		voiceConnection.joinConfig.channelId != newState.channelId &&
 		oldState.channel?.members.size == 1
 	) {
-		destroyVoiceConnection(guildId);
+		destroyGuildInstance(guildId);
 		console.log("[VOICE] Disconnected from channel because everyone left.");
 	}
 });
@@ -84,7 +86,7 @@ client.on("interactionCreate", async (interaction) => {
 				//	interaction.deferUpdate();
 				//	break;
 				case "disconnectBtn":
-					destroyVoiceConnection(guildId);
+					destroyGuildInstance(guildId);
 					interaction.update({
 						components: []
 					});

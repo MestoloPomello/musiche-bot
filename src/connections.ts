@@ -1,13 +1,12 @@
 import {
-    AudioPlayer,
 	AudioPlayerStatus,
-	createAudioPlayer,
 	joinVoiceChannel,
 	VoiceConnection
 } from "@discordjs/voice";
 import ytdl from "@distube/ytdl-core";
 import { VoiceBasedChannel } from "discord.js";
 import { formatDuration } from "./utils";
+import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
 
 
 export type SongInfo = {
@@ -17,19 +16,53 @@ export type SongInfo = {
 }
 
 
-export const openedVoiceConnections = new Map<string, VoiceConnection>(); 
-export const disconnectTimeouts = new Map<string, NodeJS.Timeout>(); // Handle silence timeouts 
-export const playersMap = new Map<string, AudioPlayer>();
-export const queues = new Map<string, SongInfo[]>(); // { guildId, [ {song1}, {song2} ]}
+export const guildInstances = new Map<string, ActiveGuildInstance>();
+
+/**
+ *	Get a guild instance by its ID. If it doesn't exist, the function creates it.
+ */
+export function getGuildInstance(
+	guildId: string,
+	withCreation: boolean = false
+): ActiveGuildInstance | undefined {
+	let guildInstance = guildInstances.get(guildId);
+	if (withCreation && !guildInstance) {
+		guildInstance = new ActiveGuildInstance();	
+		guildInstances.set(guildId, guildInstance);
+		console.trace(`[CONN] New instance created for guild ${guildId}. Total instances: ${guildInstances.size}`);
+	}
+	return guildInstance;
+}
 
 
+/**
+ *	Destroys a GuildInstance by guildId.
+ */
+export function destroyGuildInstance(
+	guildId: string
+): void {
+	try {
+		let guildInstance = guildInstances.get(guildId);
+		if (!guildInstance) return;
+		guildInstance.destroyVoiceConnection();
+		guildInstances.delete(guildId);
+		console.log(`[CONN] Instance deleted for guild ${guildId}. Total instances: ${guildInstances.size}`);
+	} catch (error: any) {
+		console.trace("destroyVoiceConnection error", error);
+	}
+}
+
+
+/**
+ *	Adds a new song to a guild's queue.
+ */
 export async function addToQueue(
 	guildId: string,
 	url: string,
 	asFirst: boolean = false
 ): Promise<SongInfo> {
 	const fullSongInfo = await ytdl.getBasicInfo(url); 
-	const queue = queues.get(guildId) ?? [];
+	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
 
 	const newSong: SongInfo = {
 		title: fullSongInfo.videoDetails.title,
@@ -38,18 +71,12 @@ export async function addToQueue(
 	};
 
 	if (asFirst) {
-		queue.unshift(newSong);
+		guildInstance.queue.unshift(newSong);
 	} else {
-		queue.push(newSong);
+		guildInstance.queue.push(newSong);
 	}
 
-	queues.set(guildId, queue);
 	return newSong;
-}
-
-
-export function getNextSongInQueue(guildId: string): SongInfo | null {
-	return queues.get(guildId)?.shift() ?? null;	
 }
 
 
@@ -57,58 +84,22 @@ export function getVoiceConnection(
 	currVoiceChannel: VoiceBasedChannel
 ): VoiceConnection | null {
 	try {
-		let voiceConnection = openedVoiceConnections.get(currVoiceChannel.guild.id);
-		if (!voiceConnection) {
-			voiceConnection = joinVoiceChannel({
+		const guildInstance: ActiveGuildInstance = getGuildInstance(currVoiceChannel.guild.id, true)!;
+		if (!guildInstance.voiceConnection) {
+			guildInstance.voiceConnection = joinVoiceChannel({
 				channelId: currVoiceChannel.id,
 				guildId: currVoiceChannel.guild.id,
 				// @ts-ignore
 				adapterCreator: currVoiceChannel.guild.voiceAdapterCreator,
 			});
-			if (!voiceConnection) return null;
-			openedVoiceConnections.set(currVoiceChannel.guild.id, voiceConnection);
-			console.log(`[CONN] New connection opened for guild ${currVoiceChannel.guild.id}. Total connections: ${openedVoiceConnections.size}`);
+			if (!guildInstance.voiceConnection) return null;
 		} 
-		return voiceConnection;
+		return guildInstance.voiceConnection;
 	} catch (error: any) {
 		console.trace("getVoiceConnection error:", error);
 		return null;
 	}
 }
-
-
-export function destroyVoiceConnection(
-	guildId: string
-): void {
-	try {
-		destroyPlayer(guildId);
-		openedVoiceConnections.get(guildId)?.destroy();		
-		openedVoiceConnections.delete(guildId);
-		console.log(`[CONN] Connection closed for guild ${guildId}. Total connections: ${openedVoiceConnections.size}`);
-	} catch (error: any) {
-		console.trace("destroyVoiceConnection error", error);
-	}
-}
-
-
-export function getNewPlayer(
-	guildId: string
-): AudioPlayer | null {
-	try {
-		let oldPlayer = playersMap.get(guildId);
-		if (oldPlayer) {
-			oldPlayer.stop();
-			oldPlayer.removeAllListeners();
-			playersMap.delete(guildId);
-		}
-		const newPlayer = createAudioPlayer();
-		playersMap.set(guildId, newPlayer);
-		return newPlayer;
-	} catch (error: any) {
-		console.trace("getPlayer error:", error);
-		return null;
-	}
-} 
 
 
 /** 
@@ -118,13 +109,13 @@ export function handlePlayerPause(
 	guildId: string
 ): boolean {
 	try {
-		const player = playersMap.get(guildId);
-		if (!player) return true;
-		if (player.state.status === AudioPlayerStatus.Paused) {
-			player.unpause();
+		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
+		if (!guildInstance.player) return true;
+		if (guildInstance.player.state.status === AudioPlayerStatus.Paused) {
+			guildInstance.player.unpause();
 			return false;
 		} else {
-			player.pause();
+			guildInstance.player.pause();
 			return true;
 		}
 	} catch (error: any) {
@@ -133,17 +124,3 @@ export function handlePlayerPause(
 	}
 }
 
-
-export function destroyPlayer(
-	guildId: string
-): void {
-	try {
-		const player = playersMap.get(guildId);
-		if (!player) return;
-		player.stop(true);
-		player.removeAllListeners();
-		playersMap.delete(guildId);
-	} catch (error: any) {
-		console.trace("destroyPlayer error:", error);
-	}
-}

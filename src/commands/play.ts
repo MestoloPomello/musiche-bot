@@ -5,20 +5,22 @@ import {
 } from "discord.js";
 import {
     addToQueue,
-    playersMap,
+    getGuildInstance,
     SongInfo
 } from '../connections';
 import { startNextQueuedSong } from "../music-player";
+import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
+import { getUrl } from "../utils";
 
 export const data = new SlashCommandBuilder()
     .setName('play')
     .setDescription('Metti in coda la canzone da riprodurre.')
-    .addStringOption(option => option.setName('url').setDescription('URL del video di YouTube').setRequired(true));
+    .addStringOption(option => option.setName('query').setDescription('URL del video di YouTube o testo da cercare').setRequired(true));
 
 export async function execute(interaction: CommandInteraction) {
     try {
 		// @ts-ignore
-        const url = interaction.options.getString('url');
+        const url = await getUrl(interaction.options.getString('query'));
         if (!url) throw "Inserisci un URL valido!";
 
 		const guildId: string | undefined = (interaction.member! as GuildMember)?.voice?.channel?.guild?.id;
@@ -27,13 +29,16 @@ export async function execute(interaction: CommandInteraction) {
 		}
 
 		const song: SongInfo = await addToQueue(guildId, url, false);
+		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
+
+		console.log(`[PLAY] Guild: ${guildId} | Queued song: ${song.title}`);
 
 		// If the music wasn't running
-		if (!playersMap.has(guildId)) {
+		if (!guildInstance?.player) {
 			startNextQueuedSong(interaction);
 		} else {
 			await interaction.reply({
-				content: `Aggiunto alla coda: ${song.title} [${song.length}] - ${url}`
+				content: `Aggiunto alla coda: ${song.title} [${song.length}]`
 			});
 		}
     } catch (error) {

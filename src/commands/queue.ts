@@ -4,7 +4,8 @@ import {
 	SlashCommandBuilder
 } from "discord.js";
 import { getVoiceConnection } from "@discordjs/voice";
-import { queues } from "../connections";
+import { getGuildInstance } from "../connections";
+import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
 
 export const data = new SlashCommandBuilder()
 	.setName("queue")
@@ -18,23 +19,26 @@ export async function execute(interaction: CommandInteraction) {
 		}
 
 		const voiceConnection = getVoiceConnection(guildId);
-		if (!voiceConnection) throw "non sono in un canale vocale.";
+		if (!voiceConnection) throw "non sono in un canale vocale, cazzo!";
 
-		const queue = queues.get(guildId) ?? [];
+		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!;
+		
+		const nowPlayingStr = `In esecuzione: ${guildInstance.nowPlaying?.title} [${guildInstance.nowPlaying?.length}]`;
+
 		let queueStr = "";
 
-		if (queue.length == 0) {
-			queueStr = "Non c'è nessuna canzone in coda.";
+		if (guildInstance.queue.length == 0) {
+			queueStr = `Non c'è nessuna canzone in coda.`;
 		} else {
-			queueStr = "Canzoni in coda:";
+			queueStr = `Canzoni in coda:`;
 			let cont = 0;
-			for (const songInfo of queue) {
+			for (const songInfo of guildInstance.queue) {
 				queueStr += `\n${++cont}. ${songInfo.title} [${songInfo.length}]`;
 			}
 		}
 
 		interaction.reply({
-			content: queueStr
+			content: nowPlayingStr + "\n---\n" + queueStr
 		});
 	} catch (error) {
 		console.trace("[QUEUE] Error:", error);

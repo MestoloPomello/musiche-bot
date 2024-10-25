@@ -6,12 +6,9 @@ import {
 	GuildMember
 } from "discord.js";
 import {
-	disconnectTimeouts,
-	getNewPlayer,
-	getNextSongInQueue,
+    destroyGuildInstance,
+    getGuildInstance,
 	getVoiceConnection,
-	openedVoiceConnections,
-	queues,
     SongInfo
 } from "./connections";
 import {
@@ -23,6 +20,7 @@ import {
 } from "@discordjs/voice";
 import ytdl from "@distube/ytdl-core";
 import { DISCONNECTION_TIMEOUT, ICONS } from "./constants";
+import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
 
 
 export async function startNextQueuedSong(
@@ -32,15 +30,22 @@ export async function startNextQueuedSong(
 	if (!currVoiceChannel) throw "Non sei in un canale vocale, cazzo!";
 
 	const guildId: string = currVoiceChannel.guild.id;
-	const nextSong: SongInfo | null = getNextSongInQueue(guildId);
-	if (!nextSong) return;
+	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
+	const nextSong: SongInfo | null = guildInstance.getNextSongInQueue();
+	if (!nextSong) {
+		interaction.reply({
+			content: "Nessun brano in coda.",
+			components: []
+		});
+		return;
+	}
 
-	const isVCexisting: boolean = openedVoiceConnections.has(guildId); 
+	const isVCexisting: boolean = guildInstance.voiceConnection != null; 
 	const voiceConnection: VoiceConnection | null = getVoiceConnection(currVoiceChannel); 
 	if (!voiceConnection) throw "Errore nello stabilire una connessione al canale vocale.";
-	voiceConnection.removeAllListeners();
+	//voiceConnection.removeAllListeners();
 
-	const player: AudioPlayer | null = getNewPlayer(guildId); 
+	const player: AudioPlayer = guildInstance.getNewPlayer(); 
 	if (!player) throw "Errore nella creazione di un player audio.";
 
 	if (isVCexisting) {
@@ -108,47 +113,48 @@ export function startPlayingMusic(
 		filter: "audioonly"
 	});
 
+	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!;
 	const resource = createAudioResource(stream);
 	player.play(resource);
 	voiceConnection.subscribe(player);
 
 	player.on(AudioPlayerStatus.Playing, () => {
-		console.log(`[PLAY] Guild: ${guildId} | Song: ${song.title}`);
+		console.log(`[PLAY] Guild: ${guildId} | Playing song: ${song.title}`);
 
 		// Reset the timer if a new song starts
-		if (disconnectTimeouts.has(guildId)) {
-			clearTimeout(disconnectTimeouts.get(guildId));
-			disconnectTimeouts.delete(guildId);
+		if (guildInstance.disconnectTimeout) {
+			clearTimeout(guildInstance.disconnectTimeout);
+			guildInstance.disconnectTimeout = null;
 		}
 	});
 
 	player.on(AudioPlayerStatus.Idle, () => {
-		const queue = queues.get(guildId) ?? [];
-		if (queue.length > 0) {
+		if (guildInstance.queue.length > 0) {
 			startNextQueuedSong(
 				interaction,
 			);
 			return;
 		}
+		guildInstance.nowPlaying = null;
 
 		const timeout = setTimeout(() => {
-			voiceConnection?.destroy();
-			openedVoiceConnections.delete(guildId);
-			console.log(`[PLAY] Disconnected after timeout in guild ${guildId}.`);
+			destroyGuildInstance(guildId);
+			console.log(`[DISCONNECT] After timeout in guild ${guildId}.`);
 		}, DISCONNECTION_TIMEOUT);
-		disconnectTimeouts.set(guildId, timeout);
+		guildInstance.disconnectTimeout = timeout;
 	});
 
 	player.on('error', error => {
 	 	console.trace(`Errore nel player: ${error.message}`);
 
-		try {
-            const newStream = await ytdl(`${url}&t=${elapsedTime}s`, { filter: 'audioonly' });
-            const newResource = createAudioResource(newStream);
-            player.play(newResource);
-            console.log(`Ripresa la riproduzione da ${elapsedTime} secondi: ${url}`);
-        } catch (retryError) {
-            console.error(`Errore nel tentativo di ripresa dello stream: ${retryError.message}`);
-        }
+		// ToDo - capire cosa cazzo fare qui
+		//try {
+		//          const newStream = await ytdl(`${url}&t=${elapsedTime}s`, { filter: 'audioonly' });
+		//          const newResource = createAudioResource(newStream);
+		//          player.play(newResource);
+		//          console.log(`Ripresa la riproduzione da ${elapsedTime} secondi: ${url}`);
+		//      } catch (retryError) {
+		//          console.error(`Errore nel tentativo di ripresa dello stream: ${retryError.message}`);
+		//      }
 	});
 }
