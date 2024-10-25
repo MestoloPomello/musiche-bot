@@ -21,19 +21,18 @@ export async function execute(interaction: CommandInteraction) {
 		const voiceConnection = getVoiceConnection(guildId);
 		if (!voiceConnection) throw "non sono in un canale vocale, cazzo!";
 
-		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId);
+		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!;
 		
 		const nowPlayingStr = `In esecuzione: ${guildInstance.nowPlaying?.title} [${guildInstance.nowPlaying?.length}]`;
 
-		const { queue } = guildInstance; 
 		let queueStr = "";
 
-		if (queue.length == 0) {
+		if (guildInstance.queue.length == 0) {
 			queueStr = `Non c'è nessuna canzone in coda.`;
 		} else {
 			queueStr = `Canzoni in coda:`;
 			let cont = 0;
-			for (const songInfo of queue) {
+			for (const songInfo of guildInstance.queue) {
 				queueStr += `\n${++cont}. ${songInfo.title} [${songInfo.length}]`;
 			}
 		}

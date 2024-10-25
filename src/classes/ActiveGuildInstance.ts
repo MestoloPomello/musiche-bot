@@ -2,11 +2,11 @@ import { AudioPlayer, createAudioPlayer, VoiceConnection } from "@discordjs/voic
 import { SongInfo } from "../connections";
 
 export class ActiveGuildInstance {
-	voiceConnection: VoiceConnection | null;
-	disconnectTimeout: NodeJS.Timeout | null;
-	player: AudioPlayer | null;
-	nowPlaying: SongInfo | null;
-	queue: SongInfo[];
+	public voiceConnection: VoiceConnection | null;
+	public disconnectTimeout: NodeJS.Timeout | null;
+	public player: AudioPlayer | null;
+	public nowPlaying: SongInfo | null;
+	public queue: SongInfo[];
 
 	constructor() {
 		this.voiceConnection = null;
@@ -15,6 +15,8 @@ export class ActiveGuildInstance {
 		this.nowPlaying = null;
 		this.queue = [];
 	}
+
+
 
 	getNextSongInQueue(): SongInfo | null {
 		if (this.queue.length == 0) return null;
@@ -38,6 +40,7 @@ export class ActiveGuildInstance {
 	destroyVoiceConnection(): void {
 		if (!this.voiceConnection) return;
 		this.destroyPlayer();
+		this.voiceConnection.removeAllListeners();
 		this.voiceConnection.destroy();
 		this.voiceConnection = null;
 	}

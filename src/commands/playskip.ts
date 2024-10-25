@@ -9,12 +9,12 @@ import { startNextQueuedSong } from '../music-player';
 export const data = new SlashCommandBuilder()
     .setName('playskip')
     .setDescription('Avvia direttamente l\'URL inserito')
-    .addStringOption(option => option.setName('url').setDescription('URL del video di YouTube').setRequired(true));
+    .addStringOption(option => option.setName('query').setDescription('URL del video di YouTube o testo da cercare').setRequired(true));
 
 export async function execute(interaction: CommandInteraction) {
     try {
 		// @ts-ignore
-        const url = interaction.options.getString('url');
+        const url = await getUrl(interaction.options.getString('query'));
         if (!url) throw "Inserisci un URL valido!";
 
 		const guildId = (interaction.member! as GuildMember)?.voice?.channel?.guild?.id;

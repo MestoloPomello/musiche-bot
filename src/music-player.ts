@@ -30,14 +30,20 @@ export async function startNextQueuedSong(
 	if (!currVoiceChannel) throw "Non sei in un canale vocale, cazzo!";
 
 	const guildId: string = currVoiceChannel.guild.id;
-	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId); 
+	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
 	const nextSong: SongInfo | null = guildInstance.getNextSongInQueue();
-	if (!nextSong) return;
+	if (!nextSong) {
+		interaction.reply({
+			content: "Nessun brano in coda.",
+			components: []
+		});
+		return;
+	}
 
 	const isVCexisting: boolean = guildInstance.voiceConnection != null; 
 	const voiceConnection: VoiceConnection | null = getVoiceConnection(currVoiceChannel); 
 	if (!voiceConnection) throw "Errore nello stabilire una connessione al canale vocale.";
-	voiceConnection.removeAllListeners();
+	//voiceConnection.removeAllListeners();
 
 	const player: AudioPlayer = guildInstance.getNewPlayer(); 
 	if (!player) throw "Errore nella creazione di un player audio.";
@@ -107,24 +113,23 @@ export function startPlayingMusic(
 		filter: "audioonly"
 	});
 
-	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId);
-	let { disconnectTimeout, queue } = guildInstance;
+	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!;
 	const resource = createAudioResource(stream);
 	player.play(resource);
 	voiceConnection.subscribe(player);
 
 	player.on(AudioPlayerStatus.Playing, () => {
-		console.log(`[PLAY] Guild: ${guildId} | Song: ${song.title}`);
+		console.log(`[PLAY] Guild: ${guildId} | Playing song: ${song.title}`);
 
 		// Reset the timer if a new song starts
-		if (disconnectTimeout) {
-			clearTimeout(disconnectTimeout);
-			disconnectTimeout = null;
+		if (guildInstance.disconnectTimeout) {
+			clearTimeout(guildInstance.disconnectTimeout);
+			guildInstance.disconnectTimeout = null;
 		}
 	});
 
 	player.on(AudioPlayerStatus.Idle, () => {
-		if (queue.length > 0) {
+		if (guildInstance.queue.length > 0) {
 			startNextQueuedSong(
 				interaction,
 			);
@@ -134,9 +139,9 @@ export function startPlayingMusic(
 
 		const timeout = setTimeout(() => {
 			destroyGuildInstance(guildId);
-			console.log(`[PLAY] Disconnected after timeout in guild ${guildId}.`);
+			console.log(`[DISCONNECT] After timeout in guild ${guildId}.`);
 		}, DISCONNECTION_TIMEOUT);
-		disconnectTimeout = timeout;
+		guildInstance.disconnectTimeout = timeout;
 	});
 
 	player.on('error', error => {

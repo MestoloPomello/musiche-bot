@@ -36,7 +36,7 @@ client.on("guildCreate", async (guild) => {
 
 client.on("voiceStateUpdate", async (oldState, newState) => {
 	const guildId: string = oldState.guild.id;
-	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId);
+	const guildInstance: ActiveGuildInstance | undefined = getGuildInstance(guildId, false);
 	const voiceConnection: VoiceConnection | null | undefined = guildInstance?.voiceConnection; 
 
 	// If everyone leaves, quit the channel
