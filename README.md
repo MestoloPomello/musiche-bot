@@ -10,5 +10,5 @@
 - `play`: queues a song or starts playing it if the queue is empty.
 - `playskip`: places a song at the top of the queue and starts playing it.
 - `skip`: skips the current song and starts playing the next in the queue.
-- `queue`: 
-- ``
+- `queue`: shows the queued songs.
+- `leave`: makes the bot quit the voice channel (same as the disconnect button)
