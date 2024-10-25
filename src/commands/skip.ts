@@ -7,7 +7,7 @@ import { startNextQueuedSong } from '../music-player';
 
 export const data = new SlashCommandBuilder()
     .setName('skip')
-    .setDescription('Inserisce il brano inserito in coda')
+    .setDescription('Riproduce il brano successivo in coda.')
 
 export async function execute(interaction: CommandInteraction) {
     try {

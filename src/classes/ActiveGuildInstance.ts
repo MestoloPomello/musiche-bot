@@ -17,7 +17,9 @@ export class ActiveGuildInstance {
 	}
 
 	getNextSongInQueue(): SongInfo | null {
-		return this.queue.shift() ?? null;
+		if (this.queue.length == 0) return null;
+		this.nowPlaying = this.queue[0];
+		return this.queue.shift()!;
 	}
 
 	destroyPlayer(): void {

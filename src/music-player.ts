@@ -130,6 +130,7 @@ export function startPlayingMusic(
 			);
 			return;
 		}
+		guildInstance.nowPlaying = null;
 
 		const timeout = setTimeout(() => {
 			destroyGuildInstance(guildId);

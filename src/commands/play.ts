@@ -6,7 +6,6 @@ import {
 import {
     addToQueue,
     getGuildInstance,
-    guildInstances,
     SongInfo
 } from '../connections';
 import { startNextQueuedSong } from "../music-player";
@@ -36,7 +35,7 @@ export async function execute(interaction: CommandInteraction) {
 			startNextQueuedSong(interaction);
 		} else {
 			await interaction.reply({
-				content: `Aggiunto alla coda: ${song.title} [${song.length}] - ${url}`
+				content: `Aggiunto alla coda: ${song.title} [${song.length}]`
 			});
 		}
     } catch (error) {
