@@ -18,7 +18,7 @@ import {
 	VoiceConnection,
     VoiceConnectionStatus
 } from "@discordjs/voice";
-import ytdl from "@distube/ytdl-core";
+import { stream } from "play-dl";
 import { DISCONNECTION_TIMEOUT, ICONS } from "./constants";
 import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
 
@@ -101,20 +101,20 @@ export async function startNextQueuedSong(
 	}
 }
 
-
-export function startPlayingMusic(
+// ToDo - convertire a play-dl per il problema di bot
+export async function startPlayingMusic(
 	interaction: CommandInteraction,
 	voiceConnection: VoiceConnection, 
 	song: SongInfo,
 	player: AudioPlayer,
 	guildId: string
 ) {
-	const stream = ytdl(song.url, {
-		filter: "audioonly"
-	});
-
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!;
-	const resource = createAudioResource(stream);
+
+	const source = await stream(song.url, { discordPlayerCompatibility: true });
+	const resource = createAudioResource(source.stream, {
+		inputType: source.type
+	});
 	player.play(resource);
 	voiceConnection.subscribe(player);
 	
@@ -150,7 +150,7 @@ export function startPlayingMusic(
 		guildInstance.disconnectTimeout = timeout;
 	});
 
-	player.on('error', error => {
+	player.on('error', async (error) => {
 	 	console.error(`[ERROR] Guild: ${guildId} | Player error: ${error.message}`);
 
 		if (error.message === "aborted") {
@@ -158,8 +158,10 @@ export function startPlayingMusic(
 			elapsedTime += Math.floor((currentTime - song.lengthSeconds) / 1000);
 		}
 		try {
-			const newStream = ytdl(`${song.url}&t=${elapsedTime}s`, { filter: 'audioonly' });
-			const newResource = createAudioResource(newStream);
+			const source = await stream(`${song.url}&t=${elapsedTime}s`, { discordPlayerCompatibility: true });
+			const newResource = createAudioResource(source.stream, {
+				inputType: source.type
+			});
 			player.play(newResource);
 			console.log(`[PLAY] Guild: ${guildId} | Resumed from ${elapsedTime} seconds: ${song.url}`);
 		} catch (retryError) {

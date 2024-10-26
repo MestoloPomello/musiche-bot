@@ -3,10 +3,10 @@ import {
 	joinVoiceChannel,
 	VoiceConnection
 } from "@discordjs/voice";
-import ytdl from "@distube/ytdl-core";
 import { VoiceBasedChannel } from "discord.js";
 import { formatDuration } from "./utils";
 import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
+import { video_basic_info } from "play-dl";
 
 
 export type SongInfo = {
@@ -62,14 +62,14 @@ export async function addToQueue(
 	url: string,
 	asFirst: boolean = false
 ): Promise<SongInfo> {
-	const fullSongInfo = await ytdl.getBasicInfo(url); 
+	const fullSongInfo = await video_basic_info(url);
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
 
 	const newSong: SongInfo = {
-		title: fullSongInfo.videoDetails.title,
+		title: fullSongInfo.video_details.title!,
 		url: url,
-		length: formatDuration(+fullSongInfo.videoDetails.lengthSeconds),
-		lengthSeconds: +fullSongInfo.videoDetails.lengthSeconds
+		length: formatDuration(+fullSongInfo.video_details.durationInSec),
+		lengthSeconds: +fullSongInfo.video_details.durationInSec
 	};
 
 	if (asFirst) {
