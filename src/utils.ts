@@ -1,5 +1,6 @@
 import fs from "fs";
 import { Agent, createAgent } from "@distube/ytdl-core";
+import { COOKIES_PATH } from "./constants";
 
 export const ytAliases = ["youtu.be", "youtube.com", "www.youtube.com", "music.youtube.com"];
 let agent: Agent | null = null;
@@ -65,7 +66,8 @@ export async function getUrl(
  */
 export function getAgent(): Agent {
 	if (!agent) {
-		agent = createAgent(JSON.parse(fs.readFileSync("data/cookies.json", { encoding: "utf-8" })));
+		agent = createAgent(JSON.parse(fs.readFileSync(COOKIES_PATH, { encoding: "utf-8" })));
+		console.log("agent", agent);
 	}
 	return agent;
 }

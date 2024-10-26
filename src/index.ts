@@ -5,7 +5,7 @@ import { commands } from "./commands";
 import { deployCommands } from "./deploy-commands";
 import { VoiceConnection } from "@discordjs/voice";
 import { existsSync, readFileSync, writeFileSync } from "fs";
-import { GUILDS_LIST_PATH, ICONS } from "./constants";
+import { COOKIES_PATH, GUILDS_LIST_PATH, ICONS } from "./constants";
 import {
 	destroyGuildInstance,
 	getGuildInstance,
@@ -18,6 +18,13 @@ const client = new Client({
 });
 
 client.once("ready", async () => {
+	// Check if there is a cookies file, if not throw an error 
+	if (!existsSync(COOKIES_PATH)) {
+		console.error("[ERROR] Missing cookies file in data folder.");
+		client.destroy();
+		process.exit(1);
+	}
+
 	// Create the guilds list file is it doesn't exist
 	if (!existsSync(GUILDS_LIST_PATH)) {
 		writeFileSync(GUILDS_LIST_PATH, "[]");
