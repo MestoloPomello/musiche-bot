@@ -68,8 +68,8 @@ export async function addToQueue(
 	const newSong: SongInfo = {
 		title: fullSongInfo.video_details.title!,
 		url: url,
-		length: formatDuration(+fullSongInfo.video_details.durationInSec),
-		lengthSeconds: +fullSongInfo.video_details.durationInSec
+		length: formatDuration(fullSongInfo.video_details.durationInSec),
+		lengthSeconds: fullSongInfo.video_details.durationInSec
 	};
 
 	if (asFirst) {
