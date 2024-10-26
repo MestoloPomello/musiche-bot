@@ -21,6 +21,7 @@ import {
 import ytdl from "@distube/ytdl-core";
 import { DISCONNECTION_TIMEOUT, ICONS } from "./constants";
 import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
+import { getAgent } from "./utils";
 
 
 export async function startNextQueuedSong(
@@ -110,7 +111,8 @@ export function startPlayingMusic(
 	guildId: string
 ) {
 	const stream = ytdl(song.url, {
-		filter: "audioonly"
+		filter: "audioonly",
+		agent: getAgent()
 	});
 
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!;
@@ -158,7 +160,10 @@ export function startPlayingMusic(
 			elapsedTime += Math.floor((currentTime - song.lengthSeconds) / 1000);
 		}
 		try {
-			const newStream = ytdl(`${song.url}&t=${elapsedTime}s`, { filter: 'audioonly' });
+			const newStream = ytdl(`${song.url}&t=${elapsedTime}s`, {
+				filter: 'audioonly',
+				agent: getAgent()
+			});
 			const newResource = createAudioResource(newStream);
 			player.play(newResource);
 			console.log(`[PLAY] Guild: ${guildId} | Resumed from ${elapsedTime} seconds: ${song.url}`);
@@ -167,3 +172,5 @@ export function startPlayingMusic(
 		}
 	});
 }
+
+

@@ -5,7 +5,7 @@ import {
 } from "@discordjs/voice";
 import ytdl from "@distube/ytdl-core";
 import { VoiceBasedChannel } from "discord.js";
-import { formatDuration } from "./utils";
+import { formatDuration, getAgent } from "./utils";
 import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
 
 
@@ -30,7 +30,7 @@ export function getGuildInstance(
 	if (withCreation && !guildInstance) {
 		guildInstance = new ActiveGuildInstance();	
 		guildInstances.set(guildId, guildInstance);
-		console.trace(`[CONN] New instance created for guild ${guildId}. Total instances: ${guildInstances.size}`);
+		console.log(`[CONN] New instance created for guild ${guildId}. Total instances: ${guildInstances.size}`);
 	}
 	return guildInstance;
 }
@@ -62,7 +62,7 @@ export async function addToQueue(
 	url: string,
 	asFirst: boolean = false
 ): Promise<SongInfo> {
-	const fullSongInfo = await ytdl.getBasicInfo(url); 
+	const fullSongInfo = await ytdl.getBasicInfo(url, getAgent()); 
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
 
 	const newSong: SongInfo = {

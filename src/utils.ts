@@ -1,5 +1,8 @@
+import fs from "fs";
+import { Agent, createAgent } from "@distube/ytdl-core";
 
 export const ytAliases = ["youtu.be", "youtube.com", "www.youtube.com", "music.youtube.com"];
+let agent: Agent | null = null;
 
 /**
  *	From seconds to MM:SS
@@ -54,4 +57,15 @@ export async function getUrl(
 	} else {
 		return await getYtUrlByName(str);
 	}
+}
+
+
+/**
+ * Returns an agent object with the saved cookies, creating it if it doesn't exist. 
+ */
+export function getAgent(): Agent {
+	if (!agent) {
+		agent = createAgent(JSON.parse(fs.readFileSync("data/cookies.json", { encoding: "utf-8" })));
+	}
+	return agent;
 }
