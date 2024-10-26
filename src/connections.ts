@@ -62,7 +62,7 @@ export async function addToQueue(
 	url: string,
 	asFirst: boolean = false
 ): Promise<SongInfo> {
-	const fullSongInfo = await ytdl.getBasicInfo(url, getAgent()); 
+	const fullSongInfo = await ytdl.getBasicInfo(url, { agent: getAgent() }); 
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
 
 	const newSong: SongInfo = {

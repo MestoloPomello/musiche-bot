@@ -67,7 +67,6 @@ export async function getUrl(
 export function getAgent(): Agent {
 	if (!agent) {
 		agent = createAgent(JSON.parse(fs.readFileSync(COOKIES_PATH, { encoding: "utf-8" })));
-		console.log("agent", agent);
 	}
 	return agent;
 }
