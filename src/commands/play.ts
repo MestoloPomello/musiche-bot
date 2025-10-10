@@ -21,12 +21,16 @@ export async function execute(interaction: CommandInteraction) {
     try {
 		// @ts-ignore
         const url = await getUrl(interaction.options.getString('query'));
-        if (!url) throw "Inserisci un URL valido!";
+        if (!url) throw "Ma che cazzo di URL è!";
 
 		const guildId: string | undefined = (interaction.member! as GuildMember)?.voice?.channel?.guild?.id;
 		if (!guildId) {
 			throw "questo comando non funziona in privato.";
 		}
+
+        await interaction.reply({
+            content: `Sto recuperando la canzone...`
+        });
 
 		const song: SongInfo = await addToQueue(guildId, url, false);
 		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 

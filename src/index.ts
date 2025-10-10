@@ -17,7 +17,7 @@ const client = new Client({
 	intents: ["Guilds", "GuildMessages", "GuildVoiceStates"],
 });
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
 	// Check if there is a cookies file, if not throw an error 
 	if (!existsSync(COOKIES_PATH)) {
 		console.error("[ERROR] Missing cookies file in data folder.");

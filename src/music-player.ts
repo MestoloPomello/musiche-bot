@@ -1,3 +1,4 @@
+import { PassThrough } from "stream";
 import {
     ActionRowBuilder,
     ButtonBuilder,
@@ -18,10 +19,9 @@ import {
 	VoiceConnection,
     VoiceConnectionStatus
 } from "@discordjs/voice";
-import ytdl from "@distube/ytdl-core";
 import { DISCONNECTION_TIMEOUT, ICONS } from "./constants";
 import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
-import { getAgent } from "./utils";
+import { YtDlp } from "ytdlp-nodejs";
 
 
 export async function startNextQueuedSong(
@@ -96,9 +96,11 @@ export async function startNextQueuedSong(
 	};
 
 	try {
-		await interaction.reply(interactionResponse);
-	} catch (e) {
 		await interaction.followUp(interactionResponse);
+		// await interaction.reply(interactionResponse);
+	} catch (e) {
+		console.trace("[startNextQueuedSong] Error:", e);
+		// await interaction.followUp(interactionResponse);
 	}
 }
 
@@ -110,13 +112,18 @@ export function startPlayingMusic(
 	player: AudioPlayer,
 	guildId: string
 ) {
-	const stream = ytdl(song.url, {
-		filter: "audioonly",
-		agent: getAgent()
+	const ytdlp = new YtDlp();
+	const ytdlpStream = ytdlp.stream(song.url, {
+		format: {
+			filter: "audioonly"
+		}
 	});
 
+	const nodeReadable = new PassThrough();
+	ytdlpStream.pipe(nodeReadable);
+
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!;
-	const resource = createAudioResource(stream);
+	const resource = createAudioResource(nodeReadable);
 	player.play(resource);
 	voiceConnection.subscribe(player);
 	
@@ -155,21 +162,21 @@ export function startPlayingMusic(
 	player.on('error', error => {
 	 	console.error(`[ERROR] Guild: ${guildId} | Player error: ${error.message}`);
 
-		if (error.message === "aborted") {
-			const currentTime = Date.now();
-			elapsedTime += Math.floor((currentTime - song.lengthSeconds) / 1000);
-		}
-		try {
-			const newStream = ytdl(`${song.url}&t=${elapsedTime}s`, {
-				filter: 'audioonly',
-				agent: getAgent()
-			});
-			const newResource = createAudioResource(newStream);
-			player.play(newResource);
-			console.log(`[PLAY] Guild: ${guildId} | Resumed from ${elapsedTime} seconds: ${song.url}`);
-		} catch (retryError) {
-			console.error(`[ERROR] Guild: ${guildId} | While trying to resume the stream: ${retryError}`);
-		}
+		// if (error.message === "aborted") {
+		// 	const currentTime = Date.now();
+		// 	elapsedTime += Math.floor((currentTime - song.lengthSeconds) / 1000);
+		// }
+		// try {
+		// 	const newStream = ytdl(`${song.url}&t=${elapsedTime}s`, {
+		// 		filter: 'audioonly',
+		// 		agent: getAgent()
+		// 	});
+		// 	const newResource = createAudioResource(newStream);
+		// 	player.play(newResource);
+		// 	console.log(`[PLAY] Guild: ${guildId} | Resumed from ${elapsedTime} seconds: ${song.url}`);
+		// } catch (retryError) {
+		// 	console.error(`[ERROR] Guild: ${guildId} | While trying to resume the stream: ${retryError}`);
+		// }
 	});
 }
 

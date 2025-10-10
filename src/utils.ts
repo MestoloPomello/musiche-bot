@@ -1,9 +1,7 @@
 import fs from "fs";
-import { Agent, createAgent } from "@distube/ytdl-core";
 import { COOKIES_PATH } from "./constants";
 
 export const ytAliases = ["youtu.be", "youtube.com", "www.youtube.com", "music.youtube.com"];
-let agent: Agent | null = null;
 
 /**
  *	From seconds to MM:SS
@@ -64,9 +62,24 @@ export async function getUrl(
 /**
  * Returns an agent object with the saved cookies, creating it if it doesn't exist. 
  */
-export function getAgent(): Agent {
-	if (!agent) {
-		agent = createAgent(JSON.parse(fs.readFileSync(COOKIES_PATH, { encoding: "utf-8" })));
-	}
-	return agent;
+// export function getAgent(): Agent {
+// 	if (!agent) {
+// 		agent = createAgent(
+// 			JSON.parse(fs.readFileSync(COOKIES_PATH, { encoding: "utf-8" })),
+// 			//{
+// 			//	pipelining: 5,
+// 			//	maxRedirections: 0,
+// 			//	//localAddress: "51.254.32.246"
+// 			//	localAddress: generateRandomIPv6() 
+// 			//}
+// 		);
+// 	}
+// 	return agent;
+// }
+
+
+function generateRandomIPv6(): string {
+    const getRandomHex = () => Math.floor(Math.random() * 0xFFFF).toString(16);
+    return Array(8).fill(null).map(getRandomHex).join(':');
 }
+
