@@ -1,0 +1,1 @@
+export const GUILDS_LIST_PATH: string = "./data/guilds.json";
