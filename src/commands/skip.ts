@@ -1,9 +1,10 @@
+import { replyOrFollowUp } from "../handlers/interactions";
+import { startNextQueuedSong } from "../handlers/music";
 import {
     CommandInteraction,
     GuildMember,
     SlashCommandBuilder,
 } from "discord.js";
-import { startNextQueuedSong } from '../music-player';
 
 export const data = new SlashCommandBuilder()
     .setName('skip')
@@ -19,7 +20,7 @@ export async function execute(interaction: CommandInteraction) {
 		startNextQueuedSong(interaction);
     } catch (error) {
         console.trace("[SKIP] Error:", error);
-        await interaction.reply({
+        await replyOrFollowUp(interaction, {
             content: `Errore: ${error}`
         });
     }

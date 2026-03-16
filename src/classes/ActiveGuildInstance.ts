@@ -1,5 +1,5 @@
 import { AudioPlayer, createAudioPlayer, VoiceConnection } from "@discordjs/voice";
-import { SongInfo } from "../connections";
+import { SongInfo } from "../types/music";
 
 export class ActiveGuildInstance {
 	public voiceConnection: VoiceConnection | null;

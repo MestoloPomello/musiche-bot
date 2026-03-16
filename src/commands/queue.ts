@@ -4,8 +4,9 @@ import {
 	SlashCommandBuilder
 } from "discord.js";
 import { getVoiceConnection } from "@discordjs/voice";
-import { getGuildInstance } from "../connections";
 import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
+import { getGuildInstance } from "../handlers/connections";
+import { replyOrFollowUp } from "../handlers/interactions";
 
 export const data = new SlashCommandBuilder()
 	.setName("queue")
@@ -37,12 +38,12 @@ export async function execute(interaction: CommandInteraction) {
 			}
 		}
 
-		interaction.reply({
+		replyOrFollowUp(interaction, {
 			content: nowPlayingStr + "\n---\n" + queueStr
 		});
 	} catch (error) {
 		console.trace("[QUEUE] Error:", error);
-		await interaction.reply({
+		await replyOrFollowUp(interaction, {
 			content: `Errore: ${error}`
 		});
 	}

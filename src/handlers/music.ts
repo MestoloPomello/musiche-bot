@@ -1,3 +1,8 @@
+import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
+import { DISCONNECTION_TIMEOUT, ICONS } from "../constants";
+import { VideoInfo, YtDlp } from "ytdlp-nodejs";
+import { formatDuration } from "../utils";
+import { SongInfo } from "../types/music";
 import { PassThrough } from "stream";
 import {
     ActionRowBuilder,
@@ -7,21 +12,70 @@ import {
 	GuildMember
 } from "discord.js";
 import {
-    destroyGuildInstance,
-    getGuildInstance,
-	getVoiceConnection,
-    SongInfo
-} from "./connections";
-import {
 	AudioPlayer,
 	AudioPlayerStatus,
 	createAudioResource,
 	VoiceConnection,
     VoiceConnectionStatus
 } from "@discordjs/voice";
-import { DISCONNECTION_TIMEOUT, ICONS } from "./constants";
-import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
-import { YtDlp } from "ytdlp-nodejs";
+import {
+	getGuildInstance,
+	destroyGuildInstance,
+	getVoiceConnection
+} from "./connections";
+import { replyOrFollowUp } from "./interactions";
+
+export const guildInstances = new Map<string, ActiveGuildInstance>();
+
+/**
+ *	Adds a new song to a guild's queue.
+ */
+export async function addToQueue(
+	guildId: string,
+	url: string,
+	asFirst: boolean = false
+): Promise<SongInfo> {
+	const ytdlp = new YtDlp();
+	const fullSongInfo: VideoInfo = await ytdlp.getInfoAsync(url) as VideoInfo; 
+	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
+
+	const newSong: SongInfo = {
+		title: fullSongInfo.title,
+		url: url,
+		length: formatDuration(+fullSongInfo.duration),
+		lengthSeconds: +fullSongInfo.duration
+	};
+
+	if (asFirst) {
+		guildInstance.queue.unshift(newSong);
+	} else {
+		guildInstance.queue.push(newSong);
+	}
+
+	return newSong;
+}
+
+/** 
+ *	Returns true if the player is paused (or not running in general), false otherwise.
+ */
+export function handlePlayerPause(
+	guildId: string
+): boolean {
+	try {
+		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
+		if (!guildInstance.player) return true;
+		if (guildInstance.player.state.status === AudioPlayerStatus.Paused) {
+			guildInstance.player.unpause();
+			return false;
+		} else {
+			guildInstance.player.pause();
+			return true;
+		}
+	} catch (error: any) {
+		console.trace("handlePlayerPause error:", error);
+		return true;
+	}
+}
 
 
 export async function startNextQueuedSong(
@@ -34,7 +88,7 @@ export async function startNextQueuedSong(
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
 	const nextSong: SongInfo | null = guildInstance.getNextSongInQueue();
 	if (!nextSong) {
-		interaction.reply({
+		replyOrFollowUp(interaction, {
 			content: "Nessun brano in coda.",
 			components: []
 		});
@@ -96,14 +150,11 @@ export async function startNextQueuedSong(
 	};
 
 	try {
-		await interaction.followUp(interactionResponse);
-		// await interaction.reply(interactionResponse);
+		await replyOrFollowUp(interaction, interactionResponse);
 	} catch (e) {
 		console.trace("[startNextQueuedSong] Error:", e);
-		// await interaction.followUp(interactionResponse);
 	}
 }
-
 
 export function startPlayingMusic(
 	interaction: CommandInteraction,
@@ -179,5 +230,4 @@ export function startPlayingMusic(
 		// }
 	});
 }
-
 

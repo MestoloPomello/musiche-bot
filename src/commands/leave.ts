@@ -4,6 +4,7 @@ import {
 } from "discord.js";
 
 import { getVoiceConnection } from "@discordjs/voice";
+import { replyOrFollowUp } from "../handlers/interactions";
 
 export const data = new SlashCommandBuilder()
 	.setName("leave")
@@ -17,12 +18,12 @@ export async function execute(interaction: CommandInteraction) {
 		if (!voiceConnection) throw "non sono in un canale vocale.";
 		voiceConnection.destroy();
 
-		interaction.reply({
+		replyOrFollowUp(interaction, {
 			content: `Ho abbandonato il canale vocale.`
 		});
 	} catch (error) {
 		console.trace("[LEAVE] Error:", error);
-		await interaction.reply({
+		await replyOrFollowUp(interaction, {
 			content: `Errore: ${error}`
 		});
 	}

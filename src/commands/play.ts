@@ -1,16 +1,15 @@
+import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
+import { getGuildInstance } from "../handlers/connections";
+import { replyOrFollowUp } from "../handlers/interactions";
+import { startNextQueuedSong } from "../handlers/music";
+import { addToQueue } from "../handlers/music";
+import { SongInfo } from "../types/music";
+import { getUrl } from "../utils";
 import {
     CommandInteraction,
     GuildMember,
     SlashCommandBuilder,
 } from "discord.js";
-import {
-    addToQueue,
-    getGuildInstance,
-    SongInfo
-} from '../connections';
-import { startNextQueuedSong } from "../music-player";
-import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
-import { getUrl } from "../utils";
 
 export const data = new SlashCommandBuilder()
     .setName('play')
@@ -28,9 +27,9 @@ export async function execute(interaction: CommandInteraction) {
 			throw "questo comando non funziona in privato.";
 		}
 
-        await interaction.reply({
-            content: `Sto recuperando la canzone...`
-        });
+		await replyOrFollowUp(interaction, {
+			content: `Sto recuperando la canzone...`
+		});
 
 		const song: SongInfo = await addToQueue(guildId, url, false);
 		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
@@ -41,13 +40,13 @@ export async function execute(interaction: CommandInteraction) {
 		if (!guildInstance?.player) {
 			startNextQueuedSong(interaction);
 		} else {
-			await interaction.reply({
+			await replyOrFollowUp(interaction, {
 				content: `Aggiunto alla coda: ${song.title} [${song.length}]`
 			});
 		}
     } catch (error) {
         console.trace("[PLAY] Error:", error);
-        await interaction.reply({
+        await replyOrFollowUp(interaction, {
             content: `Errore: ${error}`
         });
     }

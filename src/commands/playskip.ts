@@ -1,11 +1,12 @@
+import { replyOrFollowUp } from "../handlers/interactions";
+import { startNextQueuedSong } from "../handlers/music";
+import { addToQueue } from "../handlers/music";
+import { getUrl } from "../utils";
 import {
     CommandInteraction,
     GuildMember,
     SlashCommandBuilder,
 } from "discord.js";
-import { addToQueue } from '../connections';
-import { startNextQueuedSong } from '../music-player';
-import { getUrl } from "../utils";
 
 export const data = new SlashCommandBuilder()
     .setName('playskip')
@@ -27,7 +28,7 @@ export async function execute(interaction: CommandInteraction) {
 		await startNextQueuedSong(interaction);
     } catch (error) {
         console.trace("[PLAYSKIP] Error:", error);
-        await interaction.reply({
+        await replyOrFollowUp(interaction, {
             content: `Errore: ${error}`
         });
     }

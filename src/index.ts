@@ -1,17 +1,17 @@
 require("console-stamp")(console, { format: ":date(HH:MM:ss.l)" });
 import { ActionRowBuilder, ButtonBuilder, Client } from "discord.js";
-import { config } from "./config";
-import { commands } from "./commands";
-import { deployCommands } from "./deploy-commands";
-import { VoiceConnection } from "@discordjs/voice";
-import { existsSync, readFileSync, writeFileSync } from "fs";
 import { COOKIES_PATH, GUILDS_LIST_PATH, ICONS } from "./constants";
-import {
-	destroyGuildInstance,
-	getGuildInstance,
-	handlePlayerPause
-} from "./connections";
 import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import { handlePlayerPause } from "./handlers/music";
+import { VoiceConnection } from "@discordjs/voice";
+import { deployCommands } from "./deploy-commands";
+import { commands } from "./commands";
+import { config } from "./config";
+import {
+	getGuildInstance,
+	destroyGuildInstance
+} from "./handlers/connections";
 
 const client = new Client({
 	intents: ["Guilds", "GuildMessages", "GuildVoiceStates"],
