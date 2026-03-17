@@ -43,6 +43,7 @@ export async function getUrl(
 	str: string
 ): Promise<string | null> {
 	if (!str) return null;
+	let toReturn: string | null = null;
 	if (str.includes("http://") || str.includes("https://")) {
 		let isYtUrl = false;
 		for (const alias of ytAliases) {
@@ -51,11 +52,12 @@ export async function getUrl(
 				break;
 			}
 		}
-		if (isYtUrl) return str;
+		if (isYtUrl) toReturn = str;
 		else throw "NO_YT_URL"; // ToDo - expand with other providers
 	} else {
-		return await getYtUrlByName(str);
+		toReturn = await getYtUrlByName(str);
 	}
+	return toReturn?.split("&")[0] || null;
 }
 
 
