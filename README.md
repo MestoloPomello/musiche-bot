@@ -5,6 +5,7 @@
 - `DISCORD_TOKEN`: from Discord Developer Portal
 - `DISCORD_CLIENT_ID`: from Discord Developer Portal
 - `YOUTUBE_API_KEY`: from Youtube Data API (for finding URL by title)
+- `OWNER_ID`: (optional) the Discord ID for the user who owns the bot (for special commands)
 
 ### Commands
 - `play`: queues a song or starts playing it if the queue is empty.

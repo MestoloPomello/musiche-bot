@@ -1,17 +1,19 @@
 require("console-stamp")(console, { format: ":date(HH:MM:ss.l)" });
-import { ActionRowBuilder, ButtonBuilder, Client } from "discord.js";
+import { guildSetup, loadGuilds, saveGuilds } from "./handlers/guilds";
 import { COOKIES_PATH, GUILDS_LIST_PATH, ICONS } from "./constants";
-import { ActiveGuildInstance } from "./classes/ActiveGuildInstance";
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { destroyGuildInstance } from "./handlers/connections";
+import { getVoiceConnection } from "@discordjs/voice";
 import { handlePlayerPause } from "./handlers/music";
-import { VoiceConnection } from "@discordjs/voice";
-import { deployCommands } from "./deploy-commands";
+import { existsSync, writeFileSync } from "fs";
+import { SavedGuild } from "./types/guilds";
 import { commands } from "./commands";
 import { config } from "./config";
 import {
-	getGuildInstance,
-	destroyGuildInstance
-} from "./handlers/connections";
+	ActionRowBuilder,
+	ButtonBuilder,
+	Client,
+	ChatInputCommandInteraction 
+} from "discord.js";
 
 const client = new Client({
 	intents: ["Guilds", "GuildMessages", "GuildVoiceStates"],
@@ -25,33 +27,39 @@ client.once("clientReady", async () => {
 		process.exit(1);
 	}
 
-	// Create the guilds list file is it doesn't exist
 	if (!existsSync(GUILDS_LIST_PATH)) {
 		writeFileSync(GUILDS_LIST_PATH, "[]");
 	}
-	const guildsArray: string[] = JSON.parse(readFileSync(GUILDS_LIST_PATH, { encoding: "utf8" }));
-	await deployCommands(guildsArray);
-	console.log("MusicheBot ready.");
+	const guildsArray: SavedGuild[] = loadGuilds();
+
+	// Guilds setup
+	console.log("[STARTUP] Setting up guilds...");
+	const promisesArray = guildsArray.map(async (guild) => {
+		guildSetup({ guildObj: guild, client });
+	});
+	await Promise.all(promisesArray);
+
+	console.log("Bot ready.");
 });
 
 client.on("guildCreate", async (guild) => {
 	// Add the server to the list (its ID will be used to refresh commands)
-	const guildsArray: string[] = JSON.parse(readFileSync(GUILDS_LIST_PATH, { encoding: "utf8" }));
-	guildsArray.push(guild.id);
-	writeFileSync(GUILDS_LIST_PATH, JSON.stringify(guildsArray), { flag: "w" });
+	const guildsArray: SavedGuild[] = loadGuilds();
+	const newGuild = { id: guild.id, status: "", guildData: {} };
+	guildsArray.push(newGuild);
+	saveGuilds(guildsArray);
+	guildSetup({ guildObj: newGuild });
 });
 
 client.on("voiceStateUpdate", async (oldState, newState) => {
-	const guildId: string = oldState.guild.id;
-	const guildInstance: ActiveGuildInstance | undefined = getGuildInstance(guildId, false);
-	const voiceConnection: VoiceConnection | null | undefined = guildInstance?.voiceConnection; 
+	const guildId = oldState.guild.id;
+	const myConn = getVoiceConnection(guildId);
 
-	// If everyone leaves, quit the channel
 	if (
-		voiceConnection &&
-		voiceConnection.joinConfig.channelId == oldState.channelId &&
-		voiceConnection.joinConfig.channelId != newState.channelId &&
-		oldState.channel?.members.size == 1
+		myConn &&
+			myConn.joinConfig.channelId == oldState.channelId &&
+			myConn.joinConfig.channelId != newState.channelId &&
+			oldState.channel?.members.size == 1
 	) {
 		destroyGuildInstance(guildId);
 		console.log("[VOICE] Disconnected from channel because everyone left.");
@@ -64,7 +72,7 @@ client.on("interactionCreate", async (interaction) => {
 		if (interaction.isCommand()) {
 			const { commandName } = interaction;
 			if (commands[commandName as keyof typeof commands]) {
-				commands[commandName as keyof typeof commands].execute(interaction);
+				commands[commandName as keyof typeof commands].execute(interaction as ChatInputCommandInteraction);
 			}
 		} else if (interaction.isButton()) {
 			const guildId = interaction.guildId!;
