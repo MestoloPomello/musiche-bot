@@ -1,5 +1,6 @@
 import fs from "fs";
 import { COOKIES_PATH } from "./constants";
+import { spotifyAliases } from "./handlers/music";
 
 export const ytAliases = ["youtu.be", "youtube.com", "www.youtube.com", "music.youtube.com"];
 
@@ -31,27 +32,23 @@ export async function getYtUrlByName(
  *	Given a string criteria, returns an URL.
  *	Throws an error if the URL is not from YouTube.
  */
-export async function getUrl(
-	str: string
-): Promise<string | null> {
+export async function getUrl(str: string): Promise<string | null> {
 	if (!str) return null;
-	let toReturn: string | null = null;
-	if (str.includes("http://") || str.includes("https://")) {
-		let isYtUrl = false;
-		for (const alias of ytAliases) {
-			if (str.includes(alias)) {
-				isYtUrl = true;
-				break;
-			}
-		}
-		if (isYtUrl) toReturn = str;
-		else throw "NO_YT_URL"; // ToDo - expand with other providers
-	} else {
-		toReturn = await getYtUrlByName(str);
-	}
-	return toReturn?.split("&")[0] || null;
-}
 
+	if (str.includes("http://") || str.includes("https://")) {
+		for (const alias of ytAliases) {
+			if (str.includes(alias)) return str.split("&")[0];
+		}
+		for (const alias of spotifyAliases) {
+			if (str.includes(alias)) return str.split("?")[0]; // rimuove ?si= e simili
+		}
+		throw "URL non supportato. Usa YouTube o Spotify.";
+	}
+
+	// Ricerca testuale → YouTube
+	const ytUrl = await getYtUrlByName(str);
+	return ytUrl?.split("&")[0] || null;
+}
 
 /**
  * Returns an agent object with the saved cookies, creating it if it doesn't exist. 

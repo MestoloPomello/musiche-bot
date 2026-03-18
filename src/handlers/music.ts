@@ -1,6 +1,7 @@
 import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
 import { DISCONNECTION_TIMEOUT, ICONS } from "../constants";
 import { YouTubePlayer } from "../classes/YouTubePlayer";
+import { SpotifyPlayer } from "../classes/SpotifyPlayer";
 import { replyOrFollowUp } from "./interactions";
 import { _Player } from "../classes/_Player";
 import { SongInfo } from "../types/music";
@@ -28,24 +29,18 @@ export const guildInstances = new Map<string, ActiveGuildInstance>();
 
 export const ytAliases = ["youtu.be", "youtube.com", "www.youtube.com", "music.youtube.com"];
 export const youTubePlayer = new YouTubePlayer();
+export const spotifyPlayer = new SpotifyPlayer();
 
 export const spotifyAliases = ["spotify.com", "open.spotify.com"];
 // TODO - spotify
 
 function getPlayerByUrl(url: string): _Player {
 	for (const alias of ytAliases) {
-		if (url.includes(alias)) {
-			return youTubePlayer;
-		}
+		if (url.includes(alias)) return youTubePlayer;
 	}
-
-	// TODO - spotify
-	// for (const alias of spotifyAliases) {
-	// 	if (url.includes(alias)) {
-	// 		return spotifyPlayer;
-	// 	}
-	// }
-
+	for (const alias of spotifyAliases) {
+		if (url.includes(alias)) return spotifyPlayer;  // era TODO, ora attivo
+	}
 	throw "NO_PROVIDER_FOUND";
 }
 
