@@ -1,9 +1,9 @@
 import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
 import { DISCONNECTION_TIMEOUT, ICONS } from "../constants";
-import { VideoInfo, YtDlp } from "ytdlp-nodejs";
-import { formatDuration } from "../utils";
+import { YouTubePlayer } from "../classes/YouTubePlayer";
+import { replyOrFollowUp } from "./interactions";
+import { _Player } from "../classes/_Player";
 import { SongInfo } from "../types/music";
-import { PassThrough } from "stream";
 import {
     ActionRowBuilder,
     ButtonBuilder,
@@ -23,9 +23,31 @@ import {
 	destroyGuildInstance,
 	getVoiceConnection
 } from "./connections";
-import { replyOrFollowUp } from "./interactions";
 
 export const guildInstances = new Map<string, ActiveGuildInstance>();
+
+export const ytAliases = ["youtu.be", "youtube.com", "www.youtube.com", "music.youtube.com"];
+export const youTubePlayer = new YouTubePlayer();
+
+export const spotifyAliases = ["spotify.com", "open.spotify.com"];
+// TODO - spotify
+
+function getPlayerByUrl(url: string): _Player {
+	for (const alias of ytAliases) {
+		if (url.includes(alias)) {
+			return youTubePlayer;
+		}
+	}
+
+	// TODO - spotify
+	// for (const alias of spotifyAliases) {
+	// 	if (url.includes(alias)) {
+	// 		return spotifyPlayer;
+	// 	}
+	// }
+
+	throw "NO_PROVIDER_FOUND";
+}
 
 /**
  *	Adds a new song to a guild's queue.
@@ -35,16 +57,8 @@ export async function addToQueue(
 	url: string,
 	asFirst: boolean = false
 ): Promise<SongInfo> {
-	const ytdlp = new YtDlp();
-	const fullSongInfo: VideoInfo = await ytdlp.getInfoAsync(url) as VideoInfo; 
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
-
-	const newSong: SongInfo = {
-		title: fullSongInfo.title,
-		url: url,
-		length: formatDuration(+fullSongInfo.duration),
-		lengthSeconds: +fullSongInfo.duration
-	};
+	const newSong: SongInfo = await getPlayerByUrl(url).getSongInfo(url);
 
 	if (asFirst) {
 		guildInstance.queue.unshift(newSong);
@@ -54,7 +68,6 @@ export async function addToQueue(
 
 	return newSong;
 }
-
 /** 
  *	Returns true if the player is paused (or not running in general), false otherwise.
  */
@@ -76,7 +89,6 @@ export function handlePlayerPause(
 		return true;
 	}
 }
-
 
 export async function startNextQueuedSong(
 	interaction: CommandInteraction,
@@ -163,17 +175,8 @@ export function startPlayingMusic(
 	player: AudioPlayer,
 	guildId: string
 ) {
-	const ytdlp = new YtDlp();
-	const ytdlpStream = ytdlp.stream(song.url, {
-		format: {
-			filter: "audioonly"
-		}
-	});
-
-	const nodeReadable = new PassThrough();
-	ytdlpStream.pipe(nodeReadable);
-
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!;
+	const nodeReadable = getPlayerByUrl(song.url).getSongReadableStream(song.url);
 	const resource = createAudioResource(nodeReadable);
 	player.play(resource);
 	voiceConnection.subscribe(player);
@@ -212,22 +215,6 @@ export function startPlayingMusic(
 
 	player.on('error', error => {
 	 	console.error(`[ERROR] Guild: ${guildId} | Player error: ${error.message}`);
-
-		// if (error.message === "aborted") {
-		// 	const currentTime = Date.now();
-		// 	elapsedTime += Math.floor((currentTime - song.lengthSeconds) / 1000);
-		// }
-		// try {
-		// 	const newStream = ytdl(`${song.url}&t=${elapsedTime}s`, {
-		// 		filter: 'audioonly',
-		// 		agent: getAgent()
-		// 	});
-		// 	const newResource = createAudioResource(newStream);
-		// 	player.play(newResource);
-		// 	console.log(`[PLAY] Guild: ${guildId} | Resumed from ${elapsedTime} seconds: ${song.url}`);
-		// } catch (retryError) {
-		// 	console.error(`[ERROR] Guild: ${guildId} | While trying to resume the stream: ${retryError}`);
-		// }
 	});
 }
 

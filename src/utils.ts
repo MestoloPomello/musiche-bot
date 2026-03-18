@@ -3,14 +3,6 @@ import { COOKIES_PATH } from "./constants";
 
 export const ytAliases = ["youtu.be", "youtube.com", "www.youtube.com", "music.youtube.com"];
 
-/**
- *	From seconds to MM:SS
- */
-export function formatDuration(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
 
 /**
  *	Finds a YT video URL by query.
