@@ -1,4 +1,5 @@
 import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
+import { AudioPlayerStatus } from "@discordjs/voice";
 import { getGuildInstance } from "../handlers/connections";
 import { replyOrFollowUp } from "../handlers/interactions";
 import { startNextQueuedSong } from "../handlers/music";
@@ -36,8 +37,11 @@ export async function execute(interaction: CommandInteraction) {
 
 		console.log(`[PLAY] Guild: ${guildId} | Queued song: ${song.title}`);
 
-		// If the music wasn't running
-		if (!guildInstance?.player) {
+		const isPlayerInactive =
+			!guildInstance?.player ||
+			guildInstance.player.state.status === AudioPlayerStatus.Idle;
+
+		if (isPlayerInactive) {
 			startNextQueuedSong(interaction);
 		} else {
 			await replyOrFollowUp(interaction, {

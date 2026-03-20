@@ -32,7 +32,6 @@ export const youTubePlayer = new YouTubePlayer();
 export const spotifyPlayer = new SpotifyPlayer();
 
 export const spotifyAliases = ["spotify.com", "open.spotify.com"];
-// TODO - spotify
 
 function getPlayerByUrl(url: string): _Player {
 	for (const alias of ytAliases) {
@@ -86,24 +85,33 @@ export function handlePlayerPause(
 }
 
 export async function startNextQueuedSong(
-	interaction: CommandInteraction,
+	interaction?: CommandInteraction,
 ) {
-	const currVoiceChannel = (interaction.member! as GuildMember)?.voice?.channel;
-	if (!currVoiceChannel) throw "Non sei in un canale vocale, cazzo!";
+	const currVoiceChannel = interaction
+		? (interaction.member! as GuildMember)?.voice?.channel
+		: null;
+	const guildId: string | undefined =
+		interaction?.guildId ?? currVoiceChannel?.guild.id;
+	if (!guildId) throw "Impossibile determinare la guild per la riproduzione.";
 
-	const guildId: string = currVoiceChannel.guild.id;
 	const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
 	const nextSong: SongInfo | null = guildInstance.getNextSongInQueue();
 	if (!nextSong) {
-		replyOrFollowUp(interaction, {
-			content: "Nessun brano in coda.",
-			components: []
-		});
+		if (interaction) {
+			replyOrFollowUp(interaction, {
+				content: "Nessun brano in coda.",
+				components: []
+			});
+		}
 		return;
 	}
 
 	const isVCexisting: boolean = guildInstance.voiceConnection != null; 
-	const voiceConnection: VoiceConnection | null = getVoiceConnection(currVoiceChannel); 
+	const voiceConnection: VoiceConnection | null = isVCexisting
+		? guildInstance.voiceConnection
+		: currVoiceChannel
+			? getVoiceConnection(currVoiceChannel)
+			: null;
 	if (!voiceConnection) throw "Errore nello stabilire una connessione al canale vocale.";
 	//voiceConnection.removeAllListeners();
 
@@ -112,7 +120,6 @@ export async function startNextQueuedSong(
 
 	if (isVCexisting) {
 		startPlayingMusic(
-			interaction,
 			voiceConnection,
 			nextSong,
 			player,
@@ -121,7 +128,6 @@ export async function startNextQueuedSong(
 	} else {
 		voiceConnection.on(VoiceConnectionStatus.Ready, async () => {
 			startPlayingMusic(
-				interaction,
 				voiceConnection,
 				nextSong,
 				player,
@@ -156,15 +162,16 @@ export async function startNextQueuedSong(
 		components: [replyRow],
 	};
 
-	try {
-		await replyOrFollowUp(interaction, interactionResponse);
-	} catch (e) {
-		console.trace("[startNextQueuedSong] Error:", e);
+	if (interaction) {
+		try {
+			await replyOrFollowUp(interaction, interactionResponse);
+		} catch (e) {
+			console.trace("[startNextQueuedSong] Error:", e);
+		}
 	}
 }
 
 export function startPlayingMusic(
-	interaction: CommandInteraction,
 	voiceConnection: VoiceConnection, 
 	song: SongInfo,
 	player: AudioPlayer,
@@ -194,18 +201,17 @@ export function startPlayingMusic(
 
 	player.on(AudioPlayerStatus.Idle, () => {
 		if (guildInstance.queue.length > 0) {
-			startNextQueuedSong(
-				interaction,
-			);
+			startNextQueuedSong();
 			return;
 		}
 		guildInstance.nowPlaying = null;
+		guildInstance.player = null;
 
-		const timeout = setTimeout(() => {
-			destroyGuildInstance(guildId);
-			console.log(`[DISCONNECT] After timeout in guild ${guildId}.`);
-		}, DISCONNECTION_TIMEOUT);
-		guildInstance.disconnectTimeout = timeout;
+		// const timeout = setTimeout(() => {
+		// 	destroyGuildInstance(guildId);
+		// 	console.log(`[DISCONNECT] After timeout in guild ${guildId}.`);
+		// }, DISCONNECTION_TIMEOUT);
+		// guildInstance.disconnectTimeout = timeout;
 	});
 
 	player.on('error', error => {
