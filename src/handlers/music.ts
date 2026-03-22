@@ -38,7 +38,7 @@ function getPlayerByUrl(url: string): _Player {
 		if (url.includes(alias)) return youTubePlayer;
 	}
 	for (const alias of spotifyAliases) {
-		if (url.includes(alias)) return spotifyPlayer;  // era TODO, ora attivo
+		if (url.includes(alias)) return spotifyPlayer;
 	}
 	throw "NO_PROVIDER_FOUND";
 }
