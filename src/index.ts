@@ -6,6 +6,7 @@ import { destroyGuildInstance } from "./handlers/connections";
 import { getVoiceConnection } from "@discordjs/voice";
 import { GUILDS_LIST_PATH } from "./constants";
 import { SavedGuild } from "./types/guilds";
+import { logger } from "./classes/Logger";
 import { commands } from "./commands";
 import { config } from "./config";
 
@@ -21,13 +22,13 @@ client.once("clientReady", async () => {
 	const guildsArray: SavedGuild[] = loadGuilds();
 
 	// Guilds setup
-	console.log("[STARTUP] Setting up guilds...");
+	logger.log("[STARTUP] Setting up guilds...");
 	const promisesArray = guildsArray.map(async (guild) => {
 		guildSetup({ guildObj: guild, client });
 	});
 	await Promise.all(promisesArray);
 
-	console.log("Bot ready.");
+	logger.log("Bot ready.");
 });
 
 client.on("guildCreate", async (guild) => {
@@ -51,7 +52,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 			remainingHumans == 0
 	) {
 		destroyGuildInstance(guildId);
-		console.log("[VOICE] Disconnected from channel because everyone left.");
+		logger.log("[VOICE] Disconnected from channel because everyone left.");
 	}
 });
 

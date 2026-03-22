@@ -1,4 +1,5 @@
 import { CommandInteraction } from "discord.js";
+import { logger } from "../classes/Logger";
 
 /**
  * Replies to an interaction if it hasn't been replied to or deferred yet, otherwise sends a follow-up message.
@@ -14,6 +15,6 @@ export async function replyOrFollowUp(
 			await interaction.reply(content);
 		}
 	} catch (error: any) {
-		console.trace("replyOrFollowUp error:", error);
+		logger.error("[replyOrFollowUp] Error:", error);
 	}
 }

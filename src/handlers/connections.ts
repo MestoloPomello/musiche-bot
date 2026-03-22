@@ -1,6 +1,7 @@
 import { joinVoiceChannel, VoiceConnection } from "@discordjs/voice";
 import { ActiveGuildInstance } from "../classes/ActiveGuildInstance";
 import { VoiceBasedChannel } from "discord.js";
+import { logger } from "../classes/Logger";
 
 export const guildInstances = new Map<string, ActiveGuildInstance>();
 
@@ -15,7 +16,7 @@ export function getGuildInstance(
     if (withCreation && !guildInstance) {
         guildInstance = new ActiveGuildInstance();
         guildInstances.set(guildId, guildInstance);
-        console.log(`[CONN] New instance created for guild ${guildId}. Total instances: ${guildInstances.size}`);
+        logger.log(`[CONN] New instance created for guild ${guildId}. Total instances: ${guildInstances.size}`);
     }
     return guildInstance;
 }
@@ -31,9 +32,9 @@ export function destroyGuildInstance(
         if (!guildInstance) return;
         guildInstance.destroyVoiceConnection();
         guildInstances.delete(guildId);
-        console.log(`[CONN] Instance deleted for guild ${guildId}. Total instances: ${guildInstances.size}`);
+        logger.log(`[CONN] Instance deleted for guild ${guildId}. Total instances: ${guildInstances.size}`);
     } catch (error: any) {
-        console.trace("[destroyGuildInstance] Error", error);
+        logger.error("[destroyGuildInstance] Error", error);
     }
 }
 
@@ -58,7 +59,7 @@ export function getVoiceConnection(
 		} 
 		return guildInstance.voiceConnection;
 	} catch (error: any) {
-		console.trace("getVoiceConnection error:", error);
+		logger.error("[getVoiceConnection] Error:", error);
 		return null;
 	}
 }
