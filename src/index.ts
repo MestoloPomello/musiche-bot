@@ -42,12 +42,13 @@ client.on("guildCreate", async (guild) => {
 client.on("voiceStateUpdate", async (oldState, newState) => {
 	const guildId = oldState.guild.id;
 	const myConn = getVoiceConnection(guildId);
+	const remainingHumans = oldState.channel?.members.filter((member) => !member.user.bot).size ?? 0;
 
 	if (
 		myConn &&
 			myConn.joinConfig.channelId == oldState.channelId &&
 			myConn.joinConfig.channelId != newState.channelId &&
-			oldState.channel?.members.size == 1
+			remainingHumans == 0
 	) {
 		destroyGuildInstance(guildId);
 		console.log("[VOICE] Disconnected from channel because everyone left.");
