@@ -24,6 +24,7 @@ import {
 	destroyGuildInstance,
 	getVoiceConnection
 } from "./connections";
+import { logger } from "../classes/Logger";
 
 export const guildInstances = new Map<string, ActiveGuildInstance>();
 
@@ -188,7 +189,7 @@ export function startPlayingMusic(
 	let elapsedTime = 0;
 
 	player.on(AudioPlayerStatus.Playing, () => {
-		console.log(`[PLAY] Guild: ${guildId} | Playing song: ${song.title}`);
+		logger.log(`[PLAY] Guild: ${guildId} | Playing song: ${song.title}`);
 
 		// Reset the timer if a new song starts
 		if (guildInstance.disconnectTimeout) {
@@ -209,7 +210,7 @@ export function startPlayingMusic(
 
 		// const timeout = setTimeout(() => {
 		// 	destroyGuildInstance(guildId);
-		// 	console.log(`[DISCONNECT] After timeout in guild ${guildId}.`);
+		// 	logger.log(`[DISCONNECT] After timeout in guild ${guildId}.`);
 		// }, DISCONNECTION_TIMEOUT);
 		// guildInstance.disconnectTimeout = timeout;
 	});

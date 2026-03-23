@@ -146,3 +146,4 @@ dist
 data/guilds.json
 data/cookies.json
 logs/
+.vscode/

@@ -30,7 +30,7 @@ class Logger {
 	private async output(scope: string, ...args: any[]) {
 		this.rotateIfNeeded();
 		const formatted = util.format(...args);
-		const line = `[${new Date().toLocaleString()}] ${formatted}`;
+		const line = `[${new Date().toLocaleString("it-IT")}] ${formatted}`;
 		switch (scope) {
 			case "error":
 				console.trace(line);

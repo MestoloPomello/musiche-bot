@@ -11,6 +11,7 @@ import {
     GuildMember,
     SlashCommandBuilder,
 } from "discord.js";
+import { logger } from "../classes/Logger";
 
 export const data = new SlashCommandBuilder()
     .setName('play')
@@ -35,7 +36,7 @@ export async function execute(interaction: CommandInteraction) {
 		const song: SongInfo = await addToQueue(guildId, url, false);
 		const guildInstance: ActiveGuildInstance = getGuildInstance(guildId, true)!; 
 
-		console.log(`[PLAY] Guild: ${guildId} | Queued song: ${song.title}`);
+		logger.log(`[PLAY] Guild: ${guildId} | Queued song: ${song.title}`);
 
 		const isPlayerInactive =
 			!guildInstance?.player ||

@@ -1,4 +1,3 @@
-require("console-stamp")(console, { format: ":date(HH:MM:ss.l)" });
 import { guildSetup, loadGuilds, saveGuilds } from "./handlers/guilds";
 import { COOKIES_PATH, GUILDS_LIST_PATH, ICONS } from "./constants";
 import { destroyGuildInstance } from "./handlers/connections";
@@ -6,6 +5,7 @@ import { getVoiceConnection } from "@discordjs/voice";
 import { handlePlayerPause } from "./handlers/music";
 import { existsSync, writeFileSync } from "fs";
 import { SavedGuild } from "./types/guilds";
+import { logger } from "./classes/Logger";
 import { commands } from "./commands";
 import { config } from "./config";
 import {
@@ -22,7 +22,7 @@ const client = new Client({
 client.once("clientReady", async () => {
 	// Check if there is a cookies file, if not throw an error 
 	if (!existsSync(COOKIES_PATH)) {
-		console.error("[ERROR] Missing cookies file in data folder.");
+		logger.error("Missing cookies file in data folder.");
 		client.destroy();
 		process.exit(1);
 	}
@@ -33,13 +33,13 @@ client.once("clientReady", async () => {
 	const guildsArray: SavedGuild[] = loadGuilds();
 
 	// Guilds setup
-	console.log("[STARTUP] Setting up guilds...");
+	logger.log("[STARTUP] Setting up guilds...");
 	const promisesArray = guildsArray.map(async (guild) => {
 		guildSetup({ guildObj: guild, client });
 	});
 	await Promise.all(promisesArray);
 
-	console.log("Bot ready.");
+	logger.log("Bot ready.");
 });
 
 client.on("guildCreate", async (guild) => {
@@ -63,7 +63,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 			remainingHumans == 0
 	) {
 		destroyGuildInstance(guildId);
-		console.log("[VOICE] Disconnected from channel because everyone left.");
+		logger.log("[VOICE] Disconnected from channel because everyone left.");
 	}
 });
 
@@ -110,7 +110,7 @@ client.on("interactionCreate", async (interaction) => {
 			}
 		}
 	} catch (error) {
-		console.trace("[INTERACTION] Error:", error);
+		logger.error("[INTERACTION] Error:", error);
 	}
 });
 

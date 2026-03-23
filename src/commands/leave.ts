@@ -2,7 +2,6 @@ import {
 	CommandInteraction,
 	SlashCommandBuilder
 } from "discord.js";
-
 import { getVoiceConnection } from "@discordjs/voice";
 import { replyOrFollowUp } from "../handlers/interactions";
 
