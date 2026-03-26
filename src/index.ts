@@ -54,13 +54,26 @@ client.on("guildCreate", async (guild) => {
 client.on("voiceStateUpdate", async (oldState, newState) => {
 	const guildId = oldState.guild.id;
 	const myConn = getVoiceConnection(guildId);
+    const botUserId = client.user?.id;
 	const remainingHumans = oldState.channel?.members.filter((member) => !member.user.bot).size ?? 0;
 
 	if (
+		botUserId &&
+		oldState.id === botUserId &&
 		myConn &&
-			myConn.joinConfig.channelId == oldState.channelId &&
-			myConn.joinConfig.channelId != newState.channelId &&
-			remainingHumans == 0
+		myConn.joinConfig.channelId === oldState.channelId &&
+		oldState.channelId !== newState.channelId
+	) {
+		destroyGuildInstance(guildId);
+		logger.log("[VOICE] Disconnected from channel because the bot was forcibly removed.");
+		return;
+	}
+
+	if (
+		myConn &&
+        myConn.joinConfig.channelId == oldState.channelId &&
+        myConn.joinConfig.channelId != newState.channelId &&
+        remainingHumans == 0
 	) {
 		destroyGuildInstance(guildId);
 		logger.log("[VOICE] Disconnected from channel because everyone left.");
