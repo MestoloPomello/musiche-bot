@@ -1,6 +1,6 @@
 import { guildSetup, loadGuilds, saveGuilds } from "./handlers/guilds";
-import { COOKIES_PATH, GUILDS_LIST_PATH, ICONS } from "./constants";
 import { destroyGuildInstance } from "./handlers/connections";
+import { GUILDS_LIST_PATH, ICONS } from "./constants";
 import { getVoiceConnection } from "@discordjs/voice";
 import { handlePlayerPause } from "./handlers/music";
 import { existsSync, writeFileSync } from "fs";
@@ -21,11 +21,11 @@ const client = new Client({
 
 client.once("clientReady", async () => {
 	// Check if there is a cookies file, if not throw an error 
-	if (!existsSync(COOKIES_PATH)) {
-		logger.error("Missing cookies file in data folder.");
-		client.destroy();
-		process.exit(1);
-	}
+	// if (!existsSync(COOKIES_PATH)) {
+	// 	logger.error("Missing cookies file in data folder.");
+	// 	client.destroy();
+	// 	process.exit(1);
+	// }
 
 	if (!existsSync(GUILDS_LIST_PATH)) {
 		writeFileSync(GUILDS_LIST_PATH, "[]");
